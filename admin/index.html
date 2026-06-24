@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[Nombre de tu restaurante] — Cajero</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="../css/styles.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3v7a2 2 0 002 2 2 2 0 002-2V3M8 3v18M16 3c-1.5 0-3 1.5-3 4s1.5 4 3 4M16 3v15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h1 class="login-title">Panel del cajero</h1>
+    <p class="login-sub">Entra para administrar el menú</p>
+
+    <form id="login-form" class="login-form">
+      <input type="email" id="login-email" placeholder="Tu correo" required autocomplete="email">
+      <input type="password" id="login-password" placeholder="Tu contraseña" required autocomplete="current-password">
+      <button type="submit" class="login-btn">Entrar</button>
+    </form>
+    <p class="login-error" id="login-error" hidden></p>
+  </div>
+</div>
+
+<!-- ===== ADMIN PANEL ===== -->
+<div class="admin-panel" id="admin-panel" hidden>
+
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <div class="admin-brand-group">
+        <span class="admin-brand">[Nombre de tu restaurante] · Cajero</span>
+        <span class="admin-proto-badge">Prototipo</span>
+      </div>
+      <button class="admin-logout" id="logout-btn">Salir</button>
+    </div>
+    <nav class="admin-tabs">
+      <button class="admin-tab is-active" data-tab="orders">
+        Pedidos
+        <span class="admin-tab-count" id="new-orders-count" hidden>0</span>
+      </button>
+      <button class="admin-tab" data-tab="menu">Menú</button>
+    </nav>
+  </header>
+
+  <main class="admin-main">
+
+    <!-- ===== TAB: PEDIDOS ===== -->
+    <section class="admin-tab-panel" id="tab-orders">
+      <div class="orders-board">
+        <div class="orders-column" data-status="pendiente">
+          <div class="orders-column-header">
+            <span class="orders-column-dot dot-pendiente"></span>
+            <h3>Pendientes</h3>
+            <span class="orders-column-count" id="count-pendiente">0</span>
+          </div>
+          <div class="orders-column-list" id="list-pendiente"></div>
+          <p class="orders-empty" id="empty-pendiente">Sin pedidos pendientes</p>
+        </div>
+
+        <div class="orders-column" data-status="proceso">
+          <div class="orders-column-header">
+            <span class="orders-column-dot dot-proceso"></span>
+            <h3>En proceso</h3>
+            <span class="orders-column-count" id="count-proceso">0</span>
+          </div>
+          <div class="orders-column-list" id="list-proceso"></div>
+          <p class="orders-empty" id="empty-proceso">Nada en proceso</p>
+        </div>
+
+        <div class="orders-column" data-status="entregado">
+          <div class="orders-column-header">
+            <span class="orders-column-dot dot-entregado"></span>
+            <h3>Entregados</h3>
+            <span class="orders-column-count" id="count-entregado">0</span>
+          </div>
+          <div class="orders-column-list" id="list-entregado"></div>
+          <p class="orders-empty" id="empty-entregado">Nada entregado todavía</p>
+        </div>
+
+        <div class="orders-column" data-status="cancelado">
+          <div class="orders-column-header">
+            <span class="orders-column-dot dot-cancelado"></span>
+            <h3>Cancelados</h3>
+            <span class="orders-column-count" id="count-cancelado">0</span>
+          </div>
+          <div class="orders-column-list" id="list-cancelado"></div>
+          <p class="orders-empty" id="empty-cancelado">Sin cancelaciones</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: MENÚ ===== -->
+    <section class="admin-tab-panel" id="tab-menu" hidden>
+
+      <!-- Gestión de categorías -->
+      <section class="admin-card">
+        <h2 class="admin-card-title">Categorías</h2>
+        <p class="admin-card-hint">Las más usadas aparecen primero al crear un platillo nuevo.</p>
+        <div class="category-list" id="category-list"></div>
+        <p class="admin-empty" id="category-empty" hidden>Todavía no tienes categorías. Se crean al agregar un platillo.</p>
+        <form id="new-category-form" class="new-category-form">
+          <input type="text" id="new-category-name" placeholder="Nombre de categoría nueva" maxlength="30">
+          <button type="submit" class="new-category-btn">Agregar</button>
+        </form>
+      </section>
+
+      <!-- Upload form -->
+      <section class="admin-card">
+        <h2 class="admin-card-title">Agregar platillo</h2>
+
+        <form id="upload-form" class="upload-form">
+          <label class="upload-drop" id="upload-drop">
+            <input type="file" id="image-input" accept="image/*" required hidden>
+            <div class="upload-drop-empty" id="upload-drop-empty">
+              <svg viewBox="0 0 48 48" width="36" height="36" fill="none" aria-hidden="true"><path d="M24 8v24M14 18l10-10 10 10M10 36h28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <p>Toca para subir una foto</p>
+            </div>
+            <img id="upload-preview" hidden>
+          </label>
+
+          <div class="field-group">
+            <label for="dish-name">Nombre del platillo</label>
+            <input type="text" id="dish-name" placeholder="Ej: Pollo en adobo" required>
+          </div>
+
+          <div class="field-group">
+            <label for="dish-price">Precio (en Q)</label>
+            <input type="number" id="dish-price" placeholder="Ej: 45" min="0" step="0.01" required>
+          </div>
+
+          <div class="field-group">
+            <label for="dish-category">Categoría</label>
+            <select id="dish-category" required>
+              <option value="" disabled selected>Elige una categoría</option>
+              <option value="__new__">+ Crear categoría nueva</option>
+            </select>
+            <input type="text" id="dish-category-new" placeholder="Escribe el nombre de la categoría nueva" hidden>
+          </div>
+
+          <div class="field-group">
+            <label for="dish-desc">Descripción (opcional)</label>
+            <textarea id="dish-desc" rows="2" placeholder="Algún detalle extra del platillo..."></textarea>
+          </div>
+
+          <div class="field-group">
+            <label>Extras opcionales (el cliente puede agregarlos, con costo)</label>
+            <div class="extras-builder" id="extras-builder"></div>
+            <button type="button" class="add-extra-btn" id="add-extra-btn">+ Agregar extra</button>
+          </div>
+
+          <button type="submit" class="publish-btn" id="publish-btn">Publicar en el menú</button>
+          <p class="upload-status" id="upload-status" hidden></p>
+        </form>
+      </section>
+
+      <!-- Existing dishes -->
+      <section class="admin-card">
+        <h2 class="admin-card-title">Menú actual</h2>
+        <div class="admin-grid" id="admin-grid"></div>
+        <p class="admin-empty" id="admin-empty" hidden>Aún no has agregado ningún platillo. ¡Sube el primero arriba! 🍲</p>
+      </section>
+
+    </section>
+  </main>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="confirm-overlay" id="confirm-overlay" hidden>
+  <div class="confirm-card">
+    <p class="confirm-text">¿Quitar este platillo del menú?</p>
+    <p class="confirm-sub">Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="confirm-cancel">Cancelar</button>
+      <button class="confirm-delete" id="confirm-delete">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm category delete modal -->
+<div class="confirm-overlay" id="category-confirm-overlay" hidden>
+  <div class="confirm-card">
+    <p class="confirm-text" id="category-confirm-text">¿Eliminar esta categoría?</p>
+    <p class="confirm-sub" id="category-confirm-sub"></p>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="category-confirm-cancel">Cancelar</button>
+      <button class="confirm-delete" id="category-confirm-delete">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/toast.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
