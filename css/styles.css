@@ -264,6 +264,18 @@ img { display: block; max-width: 100%; }
   .hero-visual { aspect-ratio: 16 / 10; order: -1; }
 }
 
+.hero-content {
+  background: rgba(28, 20, 14, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+}
+
+@media (max-width: 640px) {
+  .hero-content { padding: 28px 24px; }
+}
+
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -365,6 +377,18 @@ img { display: block; max-width: 100%; }
   background:
     radial-gradient(circle at 30% 70%, rgba(193, 89, 46, 0.10), transparent 50%),
     linear-gradient(160deg, #2B2017 0%, #1C140E 100%);
+}
+
+.chef-content {
+  background: rgba(28, 20, 14, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+
+@media (max-width: 640px) {
+  .chef-content { padding: 24px; }
 }
 
 .chef-title {
