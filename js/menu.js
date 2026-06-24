@@ -17,23 +17,13 @@ let activeCategory = 'todos';
 // { lineId, dishId, name, basePrice, qty, extras: [{name, price}], removeNote }
 let cart = [];
 
-// --- Platillos de muestra (solo para que el demo no se vea vacío) ---
-const SAMPLE_DISHES = [
-  { id: 'sample-1', name: 'Res con vegetales al wok', price: 65, category: 'Platos fuertes', description: 'Res tierna salteada con brócoli, pimiento y zanahoria en salsa de la casa.', imageUrl: 'assets/dishes/dish-3.jpg', extras: [{ name: 'Bebida', price: 12 }, { name: 'Arroz extra', price: 8 }] },
-  { id: 'sample-2', name: 'Res salteada con brócoli', price: 58, category: 'Platos fuertes', description: 'Un clásico: res jugosa con brócoli fresco y un toque de ajo.', imageUrl: 'assets/dishes/dish-1.jpg', extras: [{ name: 'Bebida', price: 12 }] },
-  { id: 'sample-3', name: 'Res a la plancha con guarnición', price: 62, category: 'Platos fuertes', description: 'Servida con vegetales de temporada salteados al punto.', imageUrl: 'assets/dishes/dish-2.jpg', extras: [] },
-  { id: 'sample-4', name: 'Tabla mixta de vegetales y res', price: 70, category: 'Para compartir', description: 'Porción generosa, ideal para compartir.', imageUrl: 'assets/dishes/dish-4.jpg', extras: [{ name: 'Tortillas extra', price: 5 }] },
-  { id: 'sample-5', name: 'Res al estilo de la casa', price: 60, category: 'Platos fuertes', description: 'La receta de siempre, con la sazón que nos identifica.', imageUrl: 'assets/dishes/dish-5.jpg', extras: [] },
-  { id: 'sample-6', name: 'Bocados de res con palillos', price: 55, category: 'Entradas', description: 'Porción individual, perfecta para picar.', imageUrl: 'assets/dishes/dish-6.jpg', extras: [{ name: 'Bebida', price: 12 }] },
-];
-
 // --- Links de WhatsApp (header y footer) — solo para contacto general,
 // ya no forman parte del flujo de hacer un pedido ---
-const genericWhatsAppLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola! Quisiera ver el menú 🍲')}`;
+const genericWhatsAppLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola! Quisiera ver el menú')}`;
 document.getElementById('header-whatsapp').href = genericWhatsAppLink;
 document.getElementById('footer-whatsapp').href = genericWhatsAppLink;
 
-// --- Cargar platillos desde Firestore (con muestra como respaldo) ---
+// --- Cargar platillos desde Firestore ---
 let hasResolvedDishes = false;
 
 function showDishes(dishes) {
@@ -47,12 +37,12 @@ function showDishes(dishes) {
 
 function loadDishes() {
   // Salvavidas: si Firestore no responde en 4 segundos (llave inválida,
-  // sin conexión, proyecto no configurado), mostramos las muestras y
-  // dejamos de esperar — así el demo nunca se queda cargando para siempre.
+  // sin conexión, proyecto no configurado), dejamos de esperar y mostramos
+  // el estado vacío — así el menú nunca se queda "Calentando…" para siempre.
   setTimeout(() => {
     if (!hasResolvedDishes) {
-      console.warn('Firestore no respondió a tiempo, usando platillos de muestra.');
-      showDishes(SAMPLE_DISHES);
+      console.warn('Firestore no respondió a tiempo.');
+      showDishes([]);
     }
   }, 4000);
 
@@ -65,16 +55,16 @@ function loadDishes() {
           snapshot.forEach((doc) => {
             fromFirestore.push({ id: doc.id, ...doc.data() });
           });
-          showDishes(fromFirestore.length > 0 ? fromFirestore : SAMPLE_DISHES);
+          showDishes(fromFirestore);
         },
         (error) => {
-          console.warn('No se pudo conectar a Firestore, usando platillos de muestra:', error);
-          showDishes(SAMPLE_DISHES);
+          console.warn('No se pudo conectar a Firestore:', error);
+          showDishes([]);
         }
       );
   } catch (err) {
-    console.warn('Firebase no está configurado aún, usando platillos de muestra:', err);
-    showDishes(SAMPLE_DISHES);
+    console.warn('Firebase no está configurado aún:', err);
+    showDishes([]);
   }
 }
 
@@ -319,6 +309,13 @@ function updateCartUI() {
   if (hasItems) {
     cartTotal.textContent = `Q${getCartTotal().toFixed(2)}`;
   }
+
+  // Si el cliente ya escribió un monto de pago y el total cambió
+  // (agregó/quitó algo), revalidamos para que el mensaje de error
+  // siga siendo correcto.
+  if (typeof validatePayment === 'function' && document.getElementById('cart-payment')) {
+    validatePayment();
+  }
 }
 
 function renderCartItems() {
@@ -383,10 +380,41 @@ document.addEventListener('keydown', (e) => {
 const cartSubmit = document.getElementById('cart-submit');
 const cartNote = document.getElementById('cart-note');
 const cartPayment = document.getElementById('cart-payment');
+const cartPaymentHint = document.getElementById('cart-payment-hint');
+
+// El campo de pago es opcional, pero si tiene un valor, debe ser un
+// número válido y mayor o igual al total del pedido (no tiene sentido
+// que alguien diga que paga con un billete menor a lo que debe).
+function validatePayment() {
+  const raw = cartPayment.value.trim();
+  if (raw === '') {
+    cartPaymentHint.hidden = true;
+    return { valid: true, amount: null };
+  }
+
+  const amount = Number(raw);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    cartPaymentHint.textContent = 'Escribe solo el monto en números (ej. 100).';
+    cartPaymentHint.hidden = false;
+    return { valid: false, amount: null };
+  }
+
+  const total = getCartTotal();
+  if (amount < total) {
+    cartPaymentHint.textContent = `El billete debe ser de al menos Q${total.toFixed(2)} (el total del pedido).`;
+    cartPaymentHint.hidden = false;
+    return { valid: false, amount: null };
+  }
+
+  cartPaymentHint.hidden = true;
+  return { valid: true, amount };
+}
+
+cartPayment.addEventListener('input', validatePayment);
 
 // Guarda el pedido en Firestore para que aparezca en el tablero del
 // cajero, y devuelve el ID del documento creado (o null si falló).
-async function saveOrderToFirestore() {
+async function saveOrderToFirestore(paymentAmount) {
   const items = cart.map((line) => ({
     name: line.name,
     qty: line.qty,
@@ -399,8 +427,10 @@ async function saveOrderToFirestore() {
     const docRef = await db.collection('orders').add({
       items,
       total: getCartTotal(),
-      paymentNote: cartPayment.value.trim(),
+      paymentNote: paymentAmount !== null ? `Q${paymentAmount}` : '',
       note: cartNote.value.trim(),
+      customerName: cartCustomerName.value.trim(),
+      customerKey: normalizeCustomerKey(cartCustomerName.value),
       status: 'pendiente',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -411,12 +441,93 @@ async function saveOrderToFirestore() {
   }
 }
 
+// ===================== IDENTIDAD DEL CLIENTE =====================
+// Para que "Mis pedidos" funcione, necesitamos una forma estable de
+// identificar al mismo cliente entre visitas. Usamos lo que escribe en
+// "Tu nombre y teléfono", normalizado (minúsculas, sin espacios extra)
+// como clave — se guarda en localStorage y se autocompleta después.
+const CUSTOMER_KEY_STORAGE = 'customerIdentity';
+
+function normalizeCustomerKey(raw) {
+  return raw.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function getSavedCustomerName() {
+  try {
+    return localStorage.getItem(CUSTOMER_KEY_STORAGE) || '';
+  } catch (err) {
+    return '';
+  }
+}
+
+function saveCustomerName(name) {
+  try {
+    localStorage.setItem(CUSTOMER_KEY_STORAGE, name);
+  } catch (err) { /* noop */ }
+}
+
+const cartCustomerName = document.getElementById('cart-customer-name');
+cartCustomerName.value = getSavedCustomerName();
+
+// ===================== COOLDOWN ANTI-SPAM =====================
+// Evita que el mismo cliente (mismo navegador) mande pedidos uno
+// detrás de otro sin esperar — 3 minutos entre pedidos.
+const ORDER_COOLDOWN_MS = 3 * 60 * 1000;
+const LAST_ORDER_TIME_KEY = 'lastOrderSentAt';
+
+function getCooldownRemaining() {
+  try {
+    const lastSent = Number(localStorage.getItem(LAST_ORDER_TIME_KEY) || 0);
+    const remaining = ORDER_COOLDOWN_MS - (Date.now() - lastSent);
+    return remaining > 0 ? remaining : 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
+function markOrderSentNow() {
+  try {
+    localStorage.setItem(LAST_ORDER_TIME_KEY, String(Date.now()));
+  } catch (err) { /* noop */ }
+}
+
 cartSubmit.addEventListener('click', async (e) => {
   e.preventDefault();
   if (getCartCount() === 0) return;
 
+  const cooldownLeft = getCooldownRemaining();
+  if (cooldownLeft > 0) {
+    const seconds = Math.ceil(cooldownLeft / 1000);
+    if (window.showToast) {
+      showToast({
+        title: 'Espera un momento',
+        message: `Puedes hacer otro pedido en ${seconds} segundo${seconds === 1 ? '' : 's'}.`,
+        type: 'error',
+      });
+    }
+    return;
+  }
+
+  if (!cartCustomerName.value.trim()) {
+    if (window.showToast) {
+      showToast({
+        title: 'Falta tu nombre y teléfono',
+        message: 'Lo necesitamos para identificar tu pedido.',
+        type: 'error',
+      });
+    }
+    cartCustomerName.focus();
+    return;
+  }
+
+  const paymentCheck = validatePayment();
+  if (!paymentCheck.valid) {
+    cartPayment.focus();
+    return;
+  }
+
   cartSubmit.classList.add('is-sending');
-  const orderId = await saveOrderToFirestore();
+  const orderId = await saveOrderToFirestore(paymentCheck.amount);
   cartSubmit.classList.remove('is-sending');
 
   if (!orderId) {
@@ -430,6 +541,8 @@ cartSubmit.addEventListener('click', async (e) => {
     return;
   }
 
+  markOrderSentNow();
+  saveCustomerName(cartCustomerName.value.trim());
   rememberMyOrder(orderId, getCartTotal());
   if (window.showToast) {
     showToast({
@@ -441,20 +554,36 @@ cartSubmit.addEventListener('click', async (e) => {
   cart = [];
   cartNote.value = '';
   cartPayment.value = '';
+  cartPaymentHint.hidden = true;
   updateCartUI();
   renderMenu();
   cartOverlay.hidden = true;
 });
 
 // ============================================================
-// "MI PEDIDO" — seguimiento y cancelación desde el navegador
-// del cliente, sin necesitar cuenta. Se guarda en localStorage
-// porque solo este dispositivo debe poder cancelar este pedido.
+// ============================================================
+// "MI PEDIDO" — seguimiento en tiempo real y cancelación desde
+// el navegador del cliente, sin necesitar cuenta. El ID del
+// pedido se guarda en localStorage (solo este dispositivo debe
+// poder cancelarlo), pero el estado se sigue en vivo desde
+// Firestore para avisar si el cajero lo cambia (por ejemplo,
+// si lo cancela él mismo).
 // Ventana de cancelación: 10 minutos desde que se envió.
 // ============================================================
 
 const CANCEL_WINDOW_MS = 10 * 60 * 1000;
 const MY_ORDER_KEY = 'lastOrder';
+
+const ORDER_STATUS_LABEL = {
+  pendiente: 'Pendiente',
+  proceso: 'En proceso',
+  entregado: 'Entregado',
+  cancelado: 'Cancelado',
+};
+
+let myOrderUnsubscribe = null;
+let myOrderLastKnownStatus = null;
+let cancelledByMe = false;
 
 function rememberMyOrder(orderId, total) {
   const data = { orderId, total, sentAt: Date.now() };
@@ -464,6 +593,7 @@ function rememberMyOrder(orderId, total) {
     console.warn('No se pudo guardar el pedido en este dispositivo:', err);
   }
   showMyOrderButton(data);
+  watchMyOrderStatus(orderId);
 }
 
 function getMyOrder() {
@@ -489,6 +619,55 @@ function initMyOrderTracker() {
     // +5s de margen para que no desaparezca justo al recargar la página
     showMyOrderButton(existing);
   }
+  if (existing) {
+    watchMyOrderStatus(existing.orderId);
+  }
+}
+
+// Escucha en tiempo real el documento del pedido para detectar si el
+// cajero cambia su estado (avanzarlo o cancelarlo) mientras el cliente
+// sigue en la página.
+function watchMyOrderStatus(orderId) {
+  if (myOrderUnsubscribe) myOrderUnsubscribe();
+  myOrderLastKnownStatus = null;
+
+  myOrderUnsubscribe = db.collection('orders').doc(orderId).onSnapshot((doc) => {
+    if (!doc.exists) return;
+    const status = doc.data().status;
+
+    // No avisar en la primera lectura (sería redundante con el toast
+    // de "pedido enviado" que ya se mostró al confirmar).
+    if (myOrderLastKnownStatus === null) {
+      myOrderLastKnownStatus = status;
+      return;
+    }
+
+    if (status !== myOrderLastKnownStatus) {
+      myOrderLastKnownStatus = status;
+      announceStatusChange(status, cancelledByMe);
+      cancelledByMe = false;
+
+      if (status === 'cancelado') {
+        document.getElementById('my-order-btn').hidden = true;
+        if (myOrderTickInterval) clearInterval(myOrderTickInterval);
+        clearMyOrder();
+        if (myOrderUnsubscribe) myOrderUnsubscribe();
+      }
+    }
+  });
+}
+
+function announceStatusChange(status, selfCancelled) {
+  if (!window.showToast) return;
+  const messages = {
+    proceso: { title: 'Tu pedido está en preparación', type: 'info' },
+    entregado: { title: 'Tu pedido fue entregado', message: 'Gracias por tu compra.', type: 'success' },
+    cancelado: selfCancelled
+      ? { title: 'Pedido cancelado', message: 'Le avisamos al negocio.', type: 'info' }
+      : { title: 'Tu pedido fue cancelado', message: 'El negocio canceló tu pedido. Escríbenos si tienes dudas.', type: 'error' },
+  };
+  const config = messages[status];
+  if (config) showToast(config);
 }
 
 function showMyOrderButton(data) {
@@ -544,26 +723,115 @@ document.getElementById('cancel-confirm-yes').addEventListener('click', async ()
       showToast({ title: 'Ya no se puede cancelar', message: 'Pasaron más de 10 minutos.', type: 'error' });
     }
     document.getElementById('my-order-btn').hidden = true;
+    clearInterval(myOrderTickInterval);
     clearMyOrder();
     return;
   }
 
   try {
+    // Marcamos que esta cancelación la inició el cliente, para que el
+    // listener en tiempo real (watchMyOrderStatus) muestre el mensaje
+    // correcto y no el de "el negocio canceló tu pedido".
+    cancelledByMe = true;
     await db.collection('orders').doc(data.orderId).update({ status: 'cancelado' });
-    if (window.showToast) {
-      showToast({ title: 'Pedido cancelado', message: 'Le avisamos al negocio.', type: 'info' });
-    }
   } catch (err) {
     console.error('No se pudo cancelar el pedido:', err);
+    cancelledByMe = false;
     if (window.showToast) {
       showToast({ title: 'No se pudo cancelar', message: 'Intenta de nuevo en un momento.', type: 'error' });
     }
   }
-
-  document.getElementById('my-order-btn').hidden = true;
-  clearInterval(myOrderTickInterval);
-  clearMyOrder();
 });
+
+// ============================================================
+// "MIS PEDIDOS" — historial de pedidos del mismo cliente
+// (identificado por nombre/teléfono guardado en su navegador),
+// con estado en tiempo real para cada uno.
+// ============================================================
+
+const myOrdersOverlay = document.getElementById('my-orders-overlay');
+const myOrdersList = document.getElementById('my-orders-list');
+const myOrdersEmpty = document.getElementById('my-orders-empty');
+let myOrdersUnsubscribe = null;
+
+document.getElementById('my-orders-toggle').addEventListener('click', () => {
+  const savedName = getSavedCustomerName();
+  if (!savedName) {
+    if (window.showToast) {
+      showToast({
+        title: 'Todavía no tienes pedidos',
+        message: 'Haz tu primer pedido y vas a poder verlo aquí.',
+        type: 'info',
+      });
+    }
+    return;
+  }
+  openMyOrders(savedName);
+});
+
+document.getElementById('my-orders-close').addEventListener('click', () => {
+  myOrdersOverlay.hidden = true;
+});
+myOrdersOverlay.addEventListener('click', (e) => {
+  if (e.target === myOrdersOverlay) myOrdersOverlay.hidden = true;
+});
+
+function openMyOrders(name) {
+  myOrdersOverlay.hidden = false;
+  const key = normalizeCustomerKey(name);
+
+  if (myOrdersUnsubscribe) myOrdersUnsubscribe();
+
+  myOrdersUnsubscribe = db.collection('orders')
+    .where('customerKey', '==', key)
+    .orderBy('createdAt', 'desc')
+    .limit(20)
+    .onSnapshot(
+      (snapshot) => {
+        const orders = [];
+        snapshot.forEach((doc) => orders.push({ id: doc.id, ...doc.data() }));
+        renderMyOrdersList(orders);
+      },
+      (error) => {
+        console.error('No se pudieron cargar tus pedidos:', error);
+        myOrdersList.innerHTML = '';
+        myOrdersEmpty.hidden = false;
+        myOrdersEmpty.querySelector('p').textContent = 'No se pudieron cargar tus pedidos.';
+      }
+    );
+}
+
+function renderMyOrdersList(orders) {
+  myOrdersList.innerHTML = '';
+
+  if (orders.length === 0) {
+    myOrdersEmpty.hidden = false;
+    return;
+  }
+  myOrdersEmpty.hidden = true;
+
+  orders.forEach((order) => {
+    const card = document.createElement('div');
+    card.className = 'my-order-card';
+
+    const time = order.createdAt && order.createdAt.toDate
+      ? order.createdAt.toDate().toLocaleString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    const itemsText = (order.items || []).map(item => `${item.qty}x ${item.name}`).join(', ');
+    const status = order.status || 'pendiente';
+
+    card.innerHTML = `
+      <div class="my-order-card-top">
+        <span class="my-order-status my-order-status-${status}">${ORDER_STATUS_LABEL[status] || status}</span>
+        <span class="my-order-time">${time}</span>
+      </div>
+      <p class="my-order-items">${escapeHtml(itemsText)}</p>
+      <p class="my-order-total">Q${Number(order.total).toFixed(2)}</p>
+    `;
+    myOrdersList.appendChild(card);
+  });
+}
 
 // --- Iniciar ---
 updateCartUI();

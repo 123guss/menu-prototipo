@@ -369,11 +369,12 @@
 
 .order-card-actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .order-action-btn {
-  flex: 1;
+  width: 100%;
   padding: 10px;
   border-radius: 100px;
   font-size: 0.78rem;
@@ -387,6 +388,13 @@
 }
 .order-action-advance:hover { background: var(--mustard-deep); }
 
+.order-action-cancel {
+  background: transparent;
+  color: #E0716A;
+  border: 1px solid rgba(224, 113, 106, 0.4);
+}
+.order-action-cancel:hover { background: rgba(224, 113, 106, 0.12); }
+
 .order-action-remove {
   background: transparent;
   color: var(--kitchen-text-soft);
@@ -396,11 +404,25 @@
 
 /* ===================== MENU MANAGEMENT TAB ===================== */
 #tab-menu {
-  max-width: 720px;
+  max-width: 1080px;
   margin: 0 auto;
+}
+
+.menu-tab-layout {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.menu-tab-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (min-width: 860px) {
+  .menu-tab-columns { grid-template-columns: 380px 1fr; }
 }
 
 .admin-card {
@@ -410,13 +432,21 @@
   box-shadow: var(--shadow-card);
 }
 
+.admin-card-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
 .admin-card-title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: var(--coffee);
-  margin: 0 0 20px;
+  margin: 0 0 4px;
 }
+
+.admin-card-categories .admin-card-header { margin-bottom: 16px; }
 
 /* ===================== UPLOAD FORM ===================== */
 .upload-form {
@@ -517,7 +547,7 @@
 .admin-card-hint {
   font-size: 0.84rem;
   color: var(--coffee-soft);
-  margin: -8px 0 16px;
+  margin: 0;
 }
 
 .category-list {

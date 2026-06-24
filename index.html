@@ -31,6 +31,9 @@
     </div>
     <div class="header-right">
       <span class="proto-badge">Prototipo</span>
+      <button class="my-orders-toggle" id="my-orders-toggle" aria-label="Mis pedidos">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
       <a class="contact-toggle" id="header-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.93.56 3.73 1.5 5.26L2 22l4.97-1.6a9.83 9.83 0 0 0 5.07 1.4c5.46 0 9.91-4.45 9.91-9.9C21.95 6.45 17.5 2 12.04 2zm5.78 14.06c-.24.68-1.4 1.3-1.93 1.38-.5.08-1.1.11-1.78-.1-.4-.13-.93-.3-1.6-.6-2.8-1.2-4.63-4.02-4.77-4.21-.14-.18-1.14-1.52-1.14-2.9 0-1.37.72-2.05.97-2.33.25-.28.55-.35.73-.35h.53c.17 0 .4-.07.62.47.24.58.81 2 .88 2.15.07.15.12.32.02.5-.1.2-.16.32-.3.5-.15.18-.32.4-.45.54-.15.15-.3.32-.13.6.17.3.78 1.28 1.67 2.07 1.15 1.03 2.13 1.35 2.43 1.5.3.15.48.13.65-.05.18-.18.78-.9.99-1.21.2-.3.41-.25.68-.15.28.1 1.77.84 2.07 1 .3.15.5.23.57.35.08.13.08.73-.16 1.4z" fill="currentColor"/></svg>
       </a>
@@ -44,13 +47,12 @@
 
 <!-- ===== HERO ===== -->
 <section class="hero">
-  <div class="hero-media">
-    <img src="assets/dishes/dish-3.jpg" alt="Platillo destacado" class="hero-img">
+  <div class="hero-media hero-media-noimg">
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <p class="hero-eyebrow">Cocina casera</p>
       <h1 class="hero-title">Sabores que<br><em>se antojan</em><br>de verdad.</h1>
-      <p class="hero-sub">Pide en línea, te confirmamos por WhatsApp y lo recoges listo. Sin filas, sin esperas.</p>
+      <p class="hero-sub">Pide en línea y te confirmamos al instante. Sin filas, sin esperas.</p>
       <div class="hero-actions">
         <a href="#menu" class="hero-cta-primary">Ver el menú</a>
         <a href="#menu" class="hero-cta-secondary">Cómo pedir</a>
@@ -77,7 +79,7 @@
       <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="1.4"/>
     </svg>
     <p>No hay platillos en esta categoría todavía.</p>
-    <p class="empty-sub">La cocina está preparando novedades 🍲</p>
+    <p class="empty-sub">Vuelve pronto, estamos preparando novedades.</p>
   </div>
 
   <div class="loading-state" id="loading-state">
@@ -151,8 +153,17 @@
           <span id="cart-total">Q0.00</span>
         </div>
       </div>
+
+      <label class="cart-note-label" for="cart-customer-name">Tu nombre y teléfono</label>
+      <input type="text" id="cart-customer-name" class="cart-note" placeholder="Ej: María, 5555-1234" maxlength="60">
+      <p class="cart-customer-hint">Lo usamos para identificar tus pedidos en "Mis pedidos".</p>
+
       <label class="cart-note-label" for="cart-payment">¿Con qué billete vas a pagar? (opcional)</label>
-      <input type="text" id="cart-payment" class="cart-note" placeholder="Ej: pago con Q100">
+      <div class="cart-payment-field">
+        <span class="cart-payment-prefix">Q</span>
+        <input type="number" id="cart-payment" class="cart-payment-input" placeholder="100" min="0" step="1" inputmode="numeric">
+      </div>
+      <p class="cart-payment-hint" id="cart-payment-hint" hidden></p>
 
       <label class="cart-note-label" for="cart-note">Nota para tu pedido (opcional)</label>
       <textarea id="cart-note" class="cart-note" rows="2" placeholder="Ej: agregar cubiertos extra, tocar el timbre..."></textarea>
@@ -175,6 +186,26 @@
   <a class="footer-whatsapp" id="footer-whatsapp" href="#" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
   <p class="footer-tag">Pedidos solo para pick-up</p>
 </footer>
+
+<!-- ===== MIS PEDIDOS (historial por nombre/teléfono) ===== -->
+<div class="cart-overlay" id="my-orders-overlay" hidden>
+  <div class="cart-drawer" id="my-orders-drawer" role="dialog" aria-modal="true" aria-label="Mis pedidos">
+    <div class="cart-header">
+      <h2 class="cart-title">Mis pedidos</h2>
+      <button class="cart-close" id="my-orders-close" aria-label="Cerrar">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="my-orders-list" id="my-orders-list"></div>
+
+    <div class="cart-empty" id="my-orders-empty">
+      <svg viewBox="0 0 48 48" width="40" height="40" fill="none" aria-hidden="true"><path d="M10 14h28M10 24h28M10 34h18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <p>Todavía no has hecho ningún pedido</p>
+      <p class="cart-empty-sub">Cuando pidas algo, lo vas a ver listado aquí</p>
+    </div>
+  </div>
+</div>
 
 <!-- ===== MI PEDIDO (flotante, con cuenta regresiva para cancelar) ===== -->
 <button class="my-order-btn" id="my-order-btn" hidden>

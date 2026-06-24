@@ -154,6 +154,19 @@ img { display: block; max-width: 100%; }
   .proto-badge { display: none; }
 }
 
+.my-orders-toggle {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--cream-deep);
+  color: var(--coffee-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.my-orders-toggle:hover { background: var(--cream); color: var(--coffee); }
+
 .contact-toggle {
   width: 42px;
   height: 42px;
@@ -214,6 +227,13 @@ img { display: block; max-width: 100%; }
   height: 72vh;
   max-width: 1140px;
   margin: 0 auto;
+}
+
+.hero-media-noimg {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(232, 163, 61, 0.35), transparent 50%),
+    radial-gradient(circle at 10% 90%, rgba(193, 68, 14, 0.4), transparent 55%),
+    linear-gradient(135deg, #2D1B0E 0%, #1A1109 100%);
 }
 
 .hero-img {
@@ -674,6 +694,47 @@ img { display: block; max-width: 100%; }
   margin-bottom: 16px;
 }
 .cart-note:focus { border-color: var(--paprika); outline: none; }
+
+.cart-payment-field {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  overflow: hidden;
+  margin-bottom: 4px;
+  transition: border-color 0.15s ease;
+}
+.cart-payment-field:focus-within { border-color: var(--paprika); }
+
+.cart-payment-prefix {
+  padding: 11px 0 11px 13px;
+  font-weight: 700;
+  color: var(--coffee-soft);
+  font-size: 0.9rem;
+}
+
+.cart-payment-input {
+  flex: 1;
+  width: 100%;
+  padding: 11px 13px 11px 4px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: var(--coffee);
+}
+.cart-payment-input:focus { outline: none; }
+.cart-payment-input::-webkit-inner-spin-button,
+.cart-payment-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+.cart-payment-hint {
+  font-size: 0.78rem;
+  color: #B5453F;
+  margin: 0 0 14px;
+  font-weight: 600;
+}
+.cart-payment-hint[hidden] { display: none; }
 
 .cart-submit {
   display: flex;
@@ -1138,5 +1199,71 @@ img { display: block; max-width: 100%; }
 .cancel-confirm-yes {
   background: #B5453F;
   color: white;
+}
+
+/* ===================== CART CUSTOMER FIELD ===================== */
+.cart-customer-hint {
+  font-size: 0.74rem;
+  color: var(--coffee-faint);
+  margin: -4px 0 14px;
+}
+
+/* ===================== MIS PEDIDOS ===================== */
+.my-orders-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.my-order-card {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  border-left: 3px solid var(--coffee-faint);
+}
+
+.my-order-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.my-order-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+.my-order-status-pendiente { background: rgba(193, 68, 14, 0.12); color: var(--paprika-deep); }
+.my-order-status-proceso { background: rgba(232, 163, 61, 0.18); color: var(--mustard-deep); }
+.my-order-status-entregado { background: rgba(79, 107, 69, 0.14); color: var(--basil-deep); }
+.my-order-status-cancelado { background: rgba(181, 69, 63, 0.12); color: #B5453F; }
+
+.my-order-time {
+  font-size: 0.74rem;
+  color: var(--coffee-faint);
+  white-space: nowrap;
+}
+
+.my-order-items {
+  font-size: 0.86rem;
+  color: var(--coffee);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+.my-order-total {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--coffee);
+  margin: 0;
 }
 

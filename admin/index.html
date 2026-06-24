@@ -103,75 +103,85 @@
 
     <!-- ===== TAB: MENÚ ===== -->
     <section class="admin-tab-panel" id="tab-menu" hidden>
+      <div class="menu-tab-layout">
 
-      <!-- Gestión de categorías -->
-      <section class="admin-card">
-        <h2 class="admin-card-title">Categorías</h2>
-        <p class="admin-card-hint">Las más usadas aparecen primero al crear un platillo nuevo.</p>
-        <div class="category-list" id="category-list"></div>
-        <p class="admin-empty" id="category-empty" hidden>Todavía no tienes categorías. Se crean al agregar un platillo.</p>
-        <form id="new-category-form" class="new-category-form">
-          <input type="text" id="new-category-name" placeholder="Nombre de categoría nueva" maxlength="30">
-          <button type="submit" class="new-category-btn">Agregar</button>
-        </form>
-      </section>
+        <!-- Gestión de categorías -->
+        <section class="admin-card admin-card-categories">
+          <div class="admin-card-header">
+            <h2 class="admin-card-title">Categorías</h2>
+            <p class="admin-card-hint">Las más usadas aparecen primero al crear un platillo.</p>
+          </div>
+          <div class="category-list" id="category-list"></div>
+          <p class="admin-empty" id="category-empty" hidden>Aún no hay categorías. Se crean al agregar un platillo.</p>
+          <form id="new-category-form" class="new-category-form">
+            <input type="text" id="new-category-name" placeholder="Nombre de categoría nueva" maxlength="30">
+            <button type="submit" class="new-category-btn">Agregar</button>
+          </form>
+        </section>
 
-      <!-- Upload form -->
-      <section class="admin-card">
-        <h2 class="admin-card-title">Agregar platillo</h2>
-
-        <form id="upload-form" class="upload-form">
-          <label class="upload-drop" id="upload-drop">
-            <input type="file" id="image-input" accept="image/*" required hidden>
-            <div class="upload-drop-empty" id="upload-drop-empty">
-              <svg viewBox="0 0 48 48" width="36" height="36" fill="none" aria-hidden="true"><path d="M24 8v24M14 18l10-10 10 10M10 36h28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <p>Toca para subir una foto</p>
+        <div class="menu-tab-columns">
+          <!-- Upload form -->
+          <section class="admin-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Agregar platillo</h2>
             </div>
-            <img id="upload-preview" hidden>
-          </label>
 
-          <div class="field-group">
-            <label for="dish-name">Nombre del platillo</label>
-            <input type="text" id="dish-name" placeholder="Ej: Pollo en adobo" required>
-          </div>
+            <form id="upload-form" class="upload-form">
+              <label class="upload-drop" id="upload-drop">
+                <input type="file" id="image-input" accept="image/*" required hidden>
+                <div class="upload-drop-empty" id="upload-drop-empty">
+                  <svg viewBox="0 0 48 48" width="36" height="36" fill="none" aria-hidden="true"><path d="M24 8v24M14 18l10-10 10 10M10 36h28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <p>Toca para subir una foto</p>
+                </div>
+                <img id="upload-preview" hidden>
+              </label>
 
-          <div class="field-group">
-            <label for="dish-price">Precio (en Q)</label>
-            <input type="number" id="dish-price" placeholder="Ej: 45" min="0" step="0.01" required>
-          </div>
+              <div class="field-group">
+                <label for="dish-name">Nombre del platillo</label>
+                <input type="text" id="dish-name" placeholder="Ej: Pollo en adobo" required>
+              </div>
 
-          <div class="field-group">
-            <label for="dish-category">Categoría</label>
-            <select id="dish-category" required>
-              <option value="" disabled selected>Elige una categoría</option>
-              <option value="__new__">+ Crear categoría nueva</option>
-            </select>
-            <input type="text" id="dish-category-new" placeholder="Escribe el nombre de la categoría nueva" hidden>
-          </div>
+              <div class="field-group">
+                <label for="dish-price">Precio (en Q)</label>
+                <input type="number" id="dish-price" placeholder="Ej: 45" min="0" step="0.01" required>
+              </div>
 
-          <div class="field-group">
-            <label for="dish-desc">Descripción (opcional)</label>
-            <textarea id="dish-desc" rows="2" placeholder="Algún detalle extra del platillo..."></textarea>
-          </div>
+              <div class="field-group">
+                <label for="dish-category">Categoría</label>
+                <select id="dish-category" required>
+                  <option value="" disabled selected>Elige una categoría</option>
+                  <option value="__new__">+ Crear categoría nueva</option>
+                </select>
+                <input type="text" id="dish-category-new" placeholder="Escribe el nombre de la categoría nueva" hidden>
+              </div>
 
-          <div class="field-group">
-            <label>Extras opcionales (el cliente puede agregarlos, con costo)</label>
-            <div class="extras-builder" id="extras-builder"></div>
-            <button type="button" class="add-extra-btn" id="add-extra-btn">+ Agregar extra</button>
-          </div>
+              <div class="field-group">
+                <label for="dish-desc">Descripción (opcional)</label>
+                <textarea id="dish-desc" rows="2" placeholder="Algún detalle extra del platillo..."></textarea>
+              </div>
 
-          <button type="submit" class="publish-btn" id="publish-btn">Publicar en el menú</button>
-          <p class="upload-status" id="upload-status" hidden></p>
-        </form>
-      </section>
+              <div class="field-group">
+                <label>Extras opcionales (con costo adicional)</label>
+                <div class="extras-builder" id="extras-builder"></div>
+                <button type="button" class="add-extra-btn" id="add-extra-btn">Agregar extra</button>
+              </div>
 
-      <!-- Existing dishes -->
-      <section class="admin-card">
-        <h2 class="admin-card-title">Menú actual</h2>
-        <div class="admin-grid" id="admin-grid"></div>
-        <p class="admin-empty" id="admin-empty" hidden>Aún no has agregado ningún platillo. ¡Sube el primero arriba! 🍲</p>
-      </section>
+              <button type="submit" class="publish-btn" id="publish-btn">Publicar platillo</button>
+              <p class="upload-status" id="upload-status" hidden></p>
+            </form>
+          </section>
 
+          <!-- Existing dishes -->
+          <section class="admin-card admin-card-current-menu">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Menú actual</h2>
+            </div>
+            <div class="admin-grid" id="admin-grid"></div>
+            <p class="admin-empty" id="admin-empty" hidden>Aún no has agregado ningún platillo.</p>
+          </section>
+        </div>
+
+      </div>
     </section>
   </main>
 </div>

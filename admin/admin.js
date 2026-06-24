@@ -167,6 +167,11 @@ function renderOrdersColumn(status, orders, flashIds) {
     const advanceBtn = nextStatus
       ? `<button class="order-action-btn order-action-advance" data-id="${order.id}" data-next="${nextStatus}">${ORDER_ADVANCE_LABEL[status]}</button>`
       : '';
+
+    const canCancel = status === 'pendiente' || status === 'proceso';
+    const cancelBtn = canCancel
+      ? `<button class="order-action-btn order-action-cancel" data-id="${order.id}">Cancelar pedido</button>`
+      : '';
     const removeLabel = status === 'entregado' || status === 'cancelado' ? 'Quitar del tablero' : 'Eliminar';
 
     card.innerHTML = `
@@ -175,10 +180,11 @@ function renderOrdersColumn(status, orders, flashIds) {
         <span class="order-card-total">Q${Number(order.total).toFixed(2)}</span>
       </div>
       <ul class="order-card-items">${itemsHtml}</ul>
-      ${order.paymentNote ? `<p class="order-card-payment">💵 ${escapeHtmlAdmin(order.paymentNote)}</p>` : ''}
+      ${order.paymentNote ? `<p class="order-card-payment">Paga con ${escapeHtmlAdmin(order.paymentNote)}${formatChange(order.paymentNote, order.total)}</p>` : ''}
       ${order.note ? `<p class="order-card-note">${escapeHtmlAdmin(order.note)}</p>` : ''}
       <div class="order-card-actions">
         ${advanceBtn}
+        ${cancelBtn}
         <button class="order-action-btn order-action-remove" data-id="${order.id}">${removeLabel}</button>
       </div>
     `;
@@ -191,11 +197,27 @@ function renderOrdersColumn(status, orders, flashIds) {
     });
   });
 
+  listEl.querySelectorAll('.order-action-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      db.collection('orders').doc(btn.dataset.id).update({ status: 'cancelado' });
+    });
+  });
+
   listEl.querySelectorAll('.order-action-remove').forEach(btn => {
     btn.addEventListener('click', () => {
       db.collection('orders').doc(btn.dataset.id).delete();
     });
   });
+}
+
+// Calcula el vuelto a partir del paymentNote (formato "Q100") y el total.
+function formatChange(paymentNote, total) {
+  const match = /Q(\d+(\.\d+)?)/.exec(paymentNote || '');
+  if (!match) return '';
+  const paid = Number(match[1]);
+  const change = paid - Number(total);
+  if (!Number.isFinite(change) || change <= 0) return '';
+  return ` · Vuelto: Q${change.toFixed(2)}`;
 }
 
 function escapeHtmlAdmin(str) {
@@ -492,7 +514,7 @@ uploadForm.addEventListener('submit', async (e) => {
 
     await touchCategory(category);
 
-    showStatus('¡Publicado! Ya aparece en el menú 🍲', 'success');
+    showStatus('Publicado. Ya aparece en el menú.', 'success');
     uploadForm.reset();
     clearExtrasForm();
     uploadPreview.hidden = true;

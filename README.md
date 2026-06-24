@@ -37,23 +37,20 @@ js/menu.js                → lógica del menú + carrito + envío del pedido a 
 js/toast.js                → sistema de notificaciones flotantes (compartido)
 admin/admin.js              → lógica del panel (login, pedidos, subir, eliminar)
 js/firebase-config.js        → AQUÍ van tus llaves de Firebase y Cloudinary
-assets/dishes/                → fotos de muestra de platillos (demo)
 ```
 
-## Hero y fotos de muestra
+## Hero
 
-El hero principal usa una foto grande de fondo con overlay degradado oscuro
-hacia la izquierda, texto y botones sólidos encima. Sin animaciones 3D ni
-librerías pesadas — HTML/CSS plano, rápido de cargar.
+El hero principal usa un fondo con degradado en los colores de marca (sin foto por
+defecto), texto y botones sólidos encima. Sin animaciones 3D ni librerías pesadas —
+HTML/CSS plano, rápido de cargar. Para usar una foto real ahí, hay que agregar una
+imagen propia y volver a poner la etiqueta `<img class="hero-img">` dentro de
+`.hero-media` en `index.html` (se quitó al limpiar las fotos de muestra del
+prototipo).
 
-Mientras Firestore esté vacío o sin conectar, `js/menu.js` muestra automáticamente
-**6 platillos de muestra** (con fotos en `assets/dishes/`) para que el demo no se vea
-vacío al presentarlo. En cuanto el negocio empiece a publicar platillos reales desde
-el panel de admin, esos sustituyen a los de muestra automáticamente — no hay que
-borrar nada a mano.
-
-Para usar fotos propias del negocio, basta con reemplazar los archivos `assets/dishes/dish-1.jpg`
-a `dish-6.jpg` (o subir platillos reales desde `/admin/`, que es el camino normal de uso).
+El menú no muestra datos de muestra: si Firestore está vacío o aún no está
+conectado, simplemente aparece el estado vacío normal ("no hay platillos en esta
+categoría todavía"). Los platillos reales se suben desde `/admin/`.
 
 ## Categorías, extras y personalización del pedido
 
@@ -86,6 +83,22 @@ Firebase nuevo y separado** (no reutilices el de Lily Nails):
 6. Reemplazar todos los valores en `js/firebase-config.js`
 7. Agregar el dominio de GitHub Pages a los "Dominios autorizados" de Firebase Authentication
 8. Subir todo a un repositorio NUEVO de GitHub y activar GitHub Pages
+9. Crear el índice compuesto de Firestore para "Mis pedidos" (ver abajo)
+
+## Índice de Firestore para "Mis pedidos"
+
+La función "Mis pedidos" hace una consulta que filtra por `customerKey` y ordena
+por `createdAt` al mismo tiempo — Firestore exige un **índice compuesto** para
+ese tipo de consulta. La forma más fácil de crearlo:
+
+1. Abre el sitio y prueba la función "Mis pedidos" (ícono de lista en el header)
+2. Si el índice no existe, va a salir un error en la consola del navegador (F12)
+   con un link tipo `https://console.firebase.google.com/.../indexes?create_composite=...`
+3. Abre ese link — Firebase ya viene con los campos correctos prellenados
+4. Dale click en **"Crear índice"** / **"Create index"**
+5. Espera 1-2 minutos a que termine de construirse (estado "Habilitando" → "Habilitado")
+
+Después de eso, "Mis pedidos" funciona sin problema.
 
 ## Panel de pedidos en tiempo real
 
@@ -111,8 +124,26 @@ cuenta regresiva de 10 minutos. El cliente puede cancelarlo desde ahí mientras
 el contador no llegue a cero — pasado ese tiempo, el botón desaparece y ya no se
 puede cancelar. Esto se guarda en el `localStorage` del navegador del cliente
 (no requiere cuenta ni código), así que solo funciona en el mismo dispositivo
-desde el que se hizo el pedido. Al cancelar, el negocio recibe una notificación
-en el panel.
+desde el que se hizo el pedido.
+
+El cambio de estado se sigue en tiempo real (con un listener a ese pedido
+específico): si el cajero lo cancela, avanza a "en proceso" o lo marca como
+entregado, el cliente recibe una notificación al instante mientras tenga la
+página abierta — sin importar quién hizo el cambio.
+
+## "Mis pedidos"
+
+Al hacer su primer pedido, el cliente escribe su nombre y teléfono — se guarda
+en su navegador y se autocompleta la próxima vez. Con el ícono de lista en el
+header puede abrir **"Mis pedidos"**, que lista sus últimos 20 pedidos con el
+estado de cada uno en tiempo real.
+
+**Nota de privacidad honesta**: como no hay cuentas reales ni contraseñas, esto
+identifica al cliente por el texto exacto que escribió (nombre/teléfono), no por
+una identidad verificada. Alguien que conozca el nombre exacto de otra persona
+técnicamente podría ver su lista de pedidos. Es la misma limitación de cualquier
+sistema "sin registro" — para una identificación más segura haría falta un login
+real (con el costo de fricción que eso implica para un menú de pick-up rápido).
 
 ## Reglas de seguridad — Firestore
 
@@ -130,7 +161,12 @@ service cloud.firestore {
     }
     match /orders/{orderId} {
       allow create: if true;
-      allow read, delete: if request.auth != null;
+      allow delete: if request.auth != null;
+
+      // Lectura pública: necesaria para que el cliente pueda seguir su
+      // propio pedido en tiempo real (sabe el ID exacto, que es largo y
+      // aleatorio — no es adivinable navegando la colección al azar).
+      allow read: if true;
 
       // El cajero puede actualizar lo que sea.
       // Un cliente sin sesión SOLO puede cancelar su propio pedido:
