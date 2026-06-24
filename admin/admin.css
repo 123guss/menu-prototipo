@@ -253,6 +253,103 @@
 #orders-search:focus { outline: none; }
 #orders-search::placeholder { color: var(--kitchen-text-soft); }
 
+/* ===================== BUSCAR PEDIDO ===================== */
+.search-order-card {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.search-order-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 24px;
+  padding: 13px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--kitchen-line);
+  background: var(--kitchen-surface);
+  color: var(--kitchen-text-soft);
+}
+
+#search-order-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: var(--kitchen-text);
+}
+#search-order-input:focus { outline: none; }
+#search-order-input::placeholder { color: var(--kitchen-text-soft); }
+
+.search-order-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-order-empty, .search-order-hint-start {
+  text-align: center;
+  font-size: 0.86rem;
+  color: var(--kitchen-text-soft);
+  padding: 30px 0;
+}
+.search-order-empty[hidden], .search-order-hint-start[hidden] { display: none; }
+
+.search-result-card {
+  background: var(--kitchen-surface);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--kitchen-line);
+  padding: 16px 18px;
+}
+
+.search-result-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.search-result-code {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  color: var(--mustard);
+}
+
+.search-result-name {
+  font-weight: 700;
+  font-size: 0.96rem;
+  color: var(--kitchen-text);
+  margin: 0 0 4px;
+}
+
+.search-result-line {
+  font-size: 0.84rem;
+  color: var(--kitchen-text-soft);
+  margin: 0 0 4px;
+}
+
+.search-result-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--kitchen-line);
+}
+
+.search-result-total {
+  font-weight: 700;
+  color: var(--paprika);
+}
+
+.search-result-time {
+  font-size: 0.78rem;
+  color: var(--kitchen-text-soft);
+}
+
 .orders-board {
   display: flex;
   flex-direction: column;

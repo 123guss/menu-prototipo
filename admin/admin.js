@@ -52,7 +52,8 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 const adminTabs = document.querySelectorAll('.admin-tab');
 const tabPanels = {
   orders: document.getElementById('tab-orders'),
-  menu: document.getElementById('tab-menu')
+  menu: document.getElementById('tab-menu'),
+  search: document.getElementById('tab-search')
 };
 
 adminTabs.forEach(tab => {
@@ -1102,3 +1103,107 @@ editDishForm.addEventListener('submit', async (e) => {
     editDishSaveBtn.disabled = false;
   }
 });
+
+// ============================================================
+// BUSCAR PEDIDO — por nombre, teléfono o código de 4 caracteres.
+// Útil cuando un cliente llama y dice cualquiera de esos datos;
+// el cajero ubica su pedido sin tener que recorrer las 4 columnas.
+// ============================================================
+
+const ORDER_STATUS_LABEL_ES = {
+  pendiente: 'Pendiente',
+  proceso: 'En proceso',
+  entregado: 'Entregado',
+  cancelado: 'Cancelado',
+};
+
+const searchOrderInput = document.getElementById('search-order-input');
+const searchOrderResults = document.getElementById('search-order-results');
+const searchOrderEmpty = document.getElementById('search-order-empty');
+const searchOrderHintStart = document.getElementById('search-order-hint-start');
+
+let searchOrderDebounce = null;
+
+searchOrderInput.addEventListener('input', () => {
+  clearTimeout(searchOrderDebounce);
+  const query = searchOrderInput.value.trim();
+
+  if (!query) {
+    searchOrderResults.innerHTML = '';
+    searchOrderEmpty.hidden = true;
+    searchOrderHintStart.hidden = false;
+    return;
+  }
+
+  searchOrderHintStart.hidden = true;
+  searchOrderDebounce = setTimeout(() => runOrderSearch(query), 350);
+});
+
+async function runOrderSearch(query) {
+  const looksLikeCode = /^[A-Za-z0-9]{4}$/.test(query);
+  const results = new Map(); // por id, evita duplicados si coincide en más de un campo
+
+  try {
+    if (looksLikeCode) {
+      const snap = await db.collection('orders').where('orderCode', '==', query.toUpperCase()).limit(5).get();
+      snap.forEach((doc) => results.set(doc.id, { id: doc.id, ...doc.data() }));
+    } else {
+      // Buscamos por coincidencia exacta en nombre, apellido o teléfono
+      // (Firestore no hace "contiene" de forma nativa sin un índice de
+      // texto completo aparte, así que comparamos en memoria sobre los
+      // pedidos recientes — suficiente para el volumen de un negocio
+      // pequeño, sin necesitar infraestructura de búsqueda adicional).
+      const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(200).get();
+      const needle = query.toLowerCase();
+      snap.forEach((doc) => {
+        const d = doc.data();
+        const haystack = [d.customerFirstname, d.customerLastname, d.customerPhone, d.customerPhone2, d.orderCode]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (haystack.includes(needle)) {
+          results.set(doc.id, { id: doc.id, ...d });
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Error buscando pedido:', err);
+  }
+
+  renderOrderSearchResults(Array.from(results.values()));
+}
+
+function renderOrderSearchResults(orders) {
+  searchOrderResults.innerHTML = '';
+
+  if (orders.length === 0) {
+    searchOrderEmpty.hidden = false;
+    return;
+  }
+  searchOrderEmpty.hidden = true;
+
+  orders.forEach((order) => {
+    const card = document.createElement('div');
+    card.className = 'search-result-card';
+
+    const time = order.createdAt && order.createdAt.toDate
+      ? order.createdAt.toDate().toLocaleString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : '';
+    const fullName = [order.customerFirstname, order.customerLastname].filter(Boolean).join(' ');
+    const itemsText = (order.items || []).map((item) => `${item.qty}x ${item.name}`).join(', ');
+    const status = order.status || 'pendiente';
+
+    card.innerHTML = `
+      <div class="search-result-top">
+        <span class="my-order-status my-order-status-${status}">${ORDER_STATUS_LABEL_ES[status] || status}</span>
+        <span class="search-result-code">${escapeHtmlAdmin(order.orderCode || '----')}</span>
+      </div>
+      <p class="search-result-name">${escapeHtmlAdmin(fullName || 'Sin nombre')}</p>
+      <p class="search-result-line">${escapeHtmlAdmin(order.customerPhone || '')}</p>
+      <p class="search-result-line">${escapeHtmlAdmin(itemsText)}</p>
+      <div class="search-result-bottom">
+        <span class="search-result-total">Q${Number(order.total || 0).toFixed(2)}</span>
+        <span class="search-result-time">${time}</span>
+      </div>
+    `;
+    searchOrderResults.appendChild(card);
+  });
+}

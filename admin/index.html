@@ -56,6 +56,7 @@
         <span class="admin-tab-count" id="new-orders-count" hidden>0</span>
       </button>
       <button class="admin-tab" data-tab="menu">Menú</button>
+      <button class="admin-tab" data-tab="search">Buscar pedido</button>
     </nav>
   </header>
 
@@ -196,6 +197,23 @@
           </section>
         </div>
 
+      </div>
+    </section>
+
+    <!-- ===== TAB: BUSCAR PEDIDO ===== -->
+    <section class="admin-tab-panel" id="tab-search" hidden>
+      <div class="search-order-card">
+        <h2 class="admin-card-title">Buscar pedido</h2>
+        <p class="admin-card-hint">Escribe el nombre, teléfono o código de 4 caracteres que te dio el cliente.</p>
+
+        <div class="search-order-bar">
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="text" id="search-order-input" placeholder="Nombre, teléfono o código...">
+        </div>
+
+        <div class="search-order-results" id="search-order-results"></div>
+        <p class="search-order-empty" id="search-order-empty" hidden>No encontramos ningún pedido con esos datos.</p>
+        <p class="search-order-hint-start" id="search-order-hint-start">Escribe algo para empezar a buscar.</p>
       </div>
     </section>
   </main>

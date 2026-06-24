@@ -1057,7 +1057,6 @@ const orderStatusCancelSection = document.getElementById('order-status-cancel-se
 const orderStatusTimer = document.getElementById('order-status-timer');
 
 let myOrderUnsubscribe = null;
-let trackedOrderUnsubscribe = null;
 let myOrderLastKnownStatus = null;
 let cancelledByMe = false;
 
@@ -1091,11 +1090,8 @@ let myOrderTickInterval = null;
 
 function initMyOrderTracker() {
   const existing = getMyOrder();
-  if (existing && Date.now() - existing.sentAt < CANCEL_WINDOW_MS + 5000) {
-    // +5s de margen para que no desaparezca justo al recargar la página
-    showMyOrderButton(existing);
-  }
   if (existing) {
+    showMyOrderButton();
     watchMyOrderStatus(existing.orderId);
   }
 }
@@ -1137,6 +1133,7 @@ function watchMyOrderStatus(orderId) {
       }
 
       if (status === 'entregado') {
+        if (cancelWindowInterval) clearInterval(cancelWindowInterval);
         startDeliveredCountdown();
       }
 
@@ -1169,31 +1166,37 @@ function announceStatusChange(status, selfCancelled) {
   if (config) showToast(config);
 }
 
-function showMyOrderButton(data) {
+function showMyOrderButton() {
   const btn = document.getElementById('my-order-btn');
   btn.hidden = false;
-  tickMyOrderButton(data);
-
-  if (myOrderTickInterval) clearInterval(myOrderTickInterval);
-  myOrderTickInterval = setInterval(() => tickMyOrderButton(data), 1000);
+  document.getElementById('my-order-btn-label').textContent = 'Mi pedido';
 }
 
-function tickMyOrderButton(data) {
-  const btn = document.getElementById('my-order-btn');
+// Cronómetro de la ventana para CANCELAR (10 minutos) — vive dentro del
+// panel de seguimiento, no en el botón flotante. Al llegar a 0, solo
+// se oculta la opción de cancelar; el resto del panel y el botón
+// flotante siguen funcionando con normalidad.
+function tickCancelWindow(data) {
   const timeLeft = CANCEL_WINDOW_MS - (Date.now() - data.sentAt);
 
   if (timeLeft <= 0) {
-    btn.hidden = true;
-    clearInterval(myOrderTickInterval);
     orderStatusCancelSection.hidden = true;
+    if (cancelWindowInterval) clearInterval(cancelWindowInterval);
     return;
   }
 
   const mins = Math.floor(timeLeft / 60000);
   const secs = Math.floor((timeLeft % 60000) / 1000);
-  const formatted = `${mins}:${secs.toString().padStart(2, '0')}`;
-  document.getElementById('my-order-timer').textContent = formatted;
-  if (orderStatusTimer) orderStatusTimer.textContent = formatted;
+  if (orderStatusTimer) {
+    orderStatusTimer.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+}
+
+let cancelWindowInterval = null;
+function startCancelWindowCountdown(data) {
+  if (cancelWindowInterval) clearInterval(cancelWindowInterval);
+  tickCancelWindow(data);
+  cancelWindowInterval = setInterval(() => tickCancelWindow(data), 1000);
 }
 
 // --- Cuenta regresiva aparte tras la entrega ---
@@ -1210,6 +1213,8 @@ function startDeliveredCountdown() {
 
   const btn = document.getElementById('my-order-btn');
   btn.hidden = false;
+  document.getElementById('my-order-btn-label').textContent = 'Entregado ·';
+  document.getElementById('my-order-timer').hidden = false;
 
   if (myOrderTickInterval) clearInterval(myOrderTickInterval);
   tickDeliveredCountdown();
@@ -1223,6 +1228,8 @@ function tickDeliveredCountdown() {
   if (timeLeft <= 0) {
     btn.hidden = true;
     clearInterval(myOrderTickInterval);
+    clearMyOrder();
+    if (myOrderUnsubscribe) myOrderUnsubscribe();
     if (!orderStatusOverlay.hidden) {
       orderStatusOverlay.hidden = true;
       unlockBodyScroll();
@@ -1247,7 +1254,11 @@ document.getElementById('my-order-btn').addEventListener('click', () => {
 function openOrderStatusPanel(data) {
   orderStatusOverlay.hidden = false;
   lockBodyScroll();
-  renderOrderTimeline(myOrderLastKnownStatus || 'pendiente');
+  const status = myOrderLastKnownStatus || 'pendiente';
+  renderOrderTimeline(status);
+  if (status === 'pendiente' || status === 'proceso') {
+    startCancelWindowCountdown(data);
+  }
 }
 
 function renderOrderTimeline(status, readOnly) {
@@ -1278,10 +1289,6 @@ function closeOrderStatusPanel() {
   if (orderStatusOverlay.hidden) return;
   orderStatusOverlay.hidden = true;
   unlockBodyScroll();
-  if (trackedOrderUnsubscribe) {
-    trackedOrderUnsubscribe();
-    trackedOrderUnsubscribe = null;
-  }
 }
 
 document.getElementById('order-status-close').addEventListener('click', closeOrderStatusPanel);
@@ -1294,103 +1301,6 @@ document.getElementById('order-status-cancel-btn').addEventListener('click', () 
   if (!data) return;
   openCancelConfirm(data);
 });
-
-// ============================================================
-// RASTREAR PEDIDO POR CÓDIGO
-// Botón del header: si ya hay un pedido activo en este navegador
-// (localStorage, dentro de los 10 minutos), abre directo el panel
-// de seguimiento normal. Si no, abre el formulario para escribir el
-// código de 4 caracteres que se le dio al cliente al confirmar.
-// El rastreo por código siempre es de solo lectura (sin botón de
-// cancelar) y solo funciona hasta 2 horas después de que el pedido
-// fue entregado o cancelado — después de eso, deja de encontrarse.
-// ============================================================
-
-const DELIVERED_LOOKUP_GRACE_MS = 2 * 60 * 60 * 1000; // 2 horas
-const trackOrderOverlay = document.getElementById('track-order-overlay');
-const trackOrderCodeInput = document.getElementById('track-order-code');
-const trackOrderError = document.getElementById('track-order-error');
-
-document.getElementById('track-order-toggle').addEventListener('click', () => {
-  const data = getMyOrder();
-  if (data) {
-    openOrderStatusPanel(data);
-    return;
-  }
-  trackOrderCodeInput.value = '';
-  trackOrderError.hidden = true;
-  trackOrderOverlay.hidden = false;
-  lockBodyScroll();
-});
-
-document.getElementById('track-order-close').addEventListener('click', () => {
-  trackOrderOverlay.hidden = true;
-  unlockBodyScroll();
-});
-trackOrderOverlay.addEventListener('click', (e) => {
-  if (e.target === trackOrderOverlay) {
-    trackOrderOverlay.hidden = true;
-    unlockBodyScroll();
-  }
-});
-
-trackOrderCodeInput.addEventListener('input', () => {
-  trackOrderCodeInput.value = trackOrderCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-});
-
-document.getElementById('track-order-submit').addEventListener('click', async () => {
-  const code = trackOrderCodeInput.value.trim();
-  trackOrderError.hidden = true;
-
-  if (code.length !== 4) {
-    trackOrderError.textContent = 'Escribe el código de 4 caracteres completo.';
-    trackOrderError.hidden = false;
-    return;
-  }
-
-  try {
-    const snapshot = await db.collection('orders').where('orderCode', '==', code).limit(1).get();
-    if (snapshot.empty) {
-      trackOrderError.textContent = 'No encontramos ningún pedido con ese código.';
-      trackOrderError.hidden = false;
-      return;
-    }
-
-    const doc = snapshot.docs[0];
-    const order = doc.data();
-
-    // Si ya pasó la ventana de gracia tras entregado/cancelado, lo
-    // tratamos como "ya no encontrado" — el código deja de servir.
-    if ((order.status === 'entregado' || order.status === 'cancelado') && order.updatedAt) {
-      const updatedAt = order.updatedAt.toDate ? order.updatedAt.toDate().getTime() : 0;
-      if (Date.now() - updatedAt > DELIVERED_LOOKUP_GRACE_MS) {
-        trackOrderError.textContent = 'Ese código ya no está disponible.';
-        trackOrderError.hidden = false;
-        return;
-      }
-    }
-
-    trackOrderOverlay.hidden = true;
-    openTrackedOrderPanel(doc.id);
-  } catch (err) {
-    console.error('Error buscando el pedido:', err);
-    trackOrderError.textContent = 'No se pudo buscar el pedido. Intenta de nuevo.';
-    trackOrderError.hidden = false;
-  }
-});
-
-function openTrackedOrderPanel(orderId) {
-  if (trackedOrderUnsubscribe) trackedOrderUnsubscribe();
-
-  orderStatusOverlay.hidden = false;
-  lockBodyScroll();
-  orderStatusCancelSection.hidden = true; // nunca se puede cancelar desde aquí
-
-  trackedOrderUnsubscribe = db.collection('orders').doc(orderId).onSnapshot((doc) => {
-    if (!doc.exists) return;
-    renderOrderTimeline(doc.data().status, true);
-  });
-}
 
 // --- Confirmación de cancelación ---
 const cancelConfirmOverlay = document.getElementById('cancel-confirm-overlay');
@@ -1416,9 +1326,8 @@ document.getElementById('cancel-confirm-yes').addEventListener('click', async ()
     if (window.showToast) {
       showToast({ title: 'Ya no se puede cancelar', message: 'Pasaron más de 10 minutos.', type: 'error' });
     }
-    document.getElementById('my-order-btn').hidden = true;
-    clearInterval(myOrderTickInterval);
-    clearMyOrder();
+    orderStatusCancelSection.hidden = true;
+    if (cancelWindowInterval) clearInterval(cancelWindowInterval);
     return;
   }
 

@@ -208,43 +208,42 @@ así que nunca puede fallar a su vez.
 
 ## Seguimiento y cancelación desde el cliente
 
-Después de enviar un pedido, aparece un botón flotante **"Mi pedido"** con una
-cuenta regresiva de 10 minutos. Al tocarlo, se abre un panel con una **línea de
-tiempo visual** (Pendiente → En proceso → Entregado) que muestra en qué etapa
-está el pedido en este momento, o un estado especial si fue cancelado. Dentro de
-ese mismo panel está el botón para cancelar, visible mientras el contador no
-llegue a cero — pasado ese tiempo, la opción de cancelar desaparece. Esto se
-guarda en el `localStorage` del navegador del cliente (no requiere cuenta ni
-código), así que solo funciona en el mismo dispositivo desde el que se hizo el
-pedido.
+Después de enviar un pedido, aparece un botón flotante **"Mi pedido"** que se
+queda visible mientras el pedido esté activo (pendiente o en proceso) — ya no
+desaparece después de un tiempo fijo. Al tocarlo, se abre un panel con una
+**línea de tiempo visual** (Pendiente → En proceso → Entregado), o un estado
+especial si fue cancelado.
 
-El cambio de estado se sigue en tiempo real (con un listener a ese pedido
-específico): si el cajero lo cancela, avanza a "en proceso" o lo marca como
-entregado, tanto la línea de tiempo (si el panel está abierto) como una
-notificación toast se actualizan al instante — sin importar quién hizo el
-cambio, y sin que el cliente tenga que cerrar y volver a abrir nada.
+Dentro de ese panel, la opción de **cancelar** tiene su propia cuenta
+regresiva de 10 minutos desde que se hizo el pedido — al llegar a cero, solo
+esa opción desaparece; el resto del panel y el botón flotante siguen
+funcionando con normalidad mientras el pedido siga en curso.
 
-## Rastrear pedido por código
+Cuando el pedido se marca **entregado**, el botón flotante cambia a mostrar
+una cuenta regresiva propia de 1 minuto 30 segundos, y al llegar a cero
+desaparece — esto da tiempo al cliente de ver la confirmación de entrega
+antes de que el botón se quite solo.
 
-Cada pedido recibe un código corto de 4 caracteres (ej. `A1B2`) al confirmarse,
-que se le muestra al cliente en el toast de "Pedido enviado". Sirve para
-recuperar el seguimiento si el cliente cierra el navegador, cambia de
-dispositivo, o pierde el `localStorage` donde normalmente se recuerda "Mi
-pedido" — algo que el sistema anterior no podía resolver por sí solo.
+Todo esto se guarda en el `localStorage` del navegador del cliente (no
+requiere cuenta ni código), así que solo funciona en el mismo dispositivo
+desde el que se hizo el pedido. El cambio de estado se sigue en tiempo real:
+si el cajero avanza o cancela el pedido, tanto la línea de tiempo (si el
+panel está abierto) como una notificación toast se actualizan al instante.
 
-El ícono de lupa en el header ("Rastrear pedido") se comporta así:
-- Si el navegador todavía tiene un pedido activo en `localStorage` (dentro de
-  los 10 minutos), abre directo el panel de seguimiento normal.
-- Si no, abre un formulario que pide escribir el código de 4 caracteres.
+## Buscar pedido (panel del cajero)
 
-El rastreo por código **siempre es de solo lectura** (sin botón de cancelar,
-sin importar el estado del pedido) — cancelar solo existe en el flujo normal
-de "Mi pedido" dentro de los primeros 10 minutos. El código deja de funcionar
-**2 horas después** de que el pedido se marca entregado o cancelado (se
-calcula con el campo `updatedAt`, que el panel del cajero y la cancelación del
-cliente actualizan en cada cambio de estado) — después de esa ventana, buscar
-ese código da "ya no está disponible", aunque el documento del pedido sigue
-existiendo en Firestore para los registros del negocio.
+Cada pedido recibe un código corto de 4 caracteres (ej. `A1B2`) al
+confirmarse, mostrado al cliente en el toast de "Pedido enviado" — pensado
+para que lo pueda dictar por teléfono si llama a preguntar por su pedido.
+
+En el panel del cajero hay una pestaña dedicada **"Buscar pedido"**, con un
+solo campo de búsqueda que acepta **nombre, apellido, teléfono o el código**
+indistintamente. Si lo escrito tiene exactamente 4 caracteres alfanuméricos,
+se busca como código exacto; si no, se busca por coincidencia en nombre,
+apellido o teléfono entre los pedidos más recientes. Los resultados muestran
+el estado actual, los datos del cliente, los platillos pedidos y el total —
+todo lo que el cajero necesita para confirmar el pedido en una llamada, sin
+tener que recorrer las 4 columnas del tablero.
 
 **Nota honesta sobre colisiones**: el código se genera al azar entre ~1 millón
 de combinaciones (4 caracteres, sin 0/O/1/I para evitar confusión visual). Para
@@ -252,19 +251,19 @@ el volumen de pedidos de un negocio pequeño el riesgo de que dos pedidos
 activos compartan el mismo código es muy bajo, pero no es matemáticamente
 imposible — no hay una garantía de unicidad forzada a nivel de base de datos.
 
-## "Mis pedidos"
+## "Mis pedidos" (código, no visible en el header actual)
 
-Al hacer su primer pedido, el cliente escribe su nombre y teléfono — se guarda
-en su navegador y se autocompleta la próxima vez. Con el ícono de lista en el
-header puede abrir **"Mis pedidos"**, que lista sus últimos 20 pedidos con el
-estado de cada uno en tiempo real.
+El sistema "Mis pedidos" (lista del historial completo de un cliente, no solo
+el pedido activo) sigue existiendo en el código — guarda el perfil del cliente
+en su navegador igual que antes — pero el botón que lo abría se quitó del
+header por decisión del negocio, ya que el botón flotante "Mi pedido" cubre el
+caso de uso principal (ver el pedido activo). Si más adelante se quiere
+recuperar esta vista, la lógica ya está lista; solo falta agregar de nuevo un
+botón que llame a `openMyOrders(...)`.
 
-**Nota de privacidad honesta**: como no hay cuentas reales ni contraseñas, esto
-identifica al cliente por el texto exacto que escribió (nombre/teléfono), no por
-una identidad verificada. Alguien que conozca el nombre exacto de otra persona
-técnicamente podría ver su lista de pedidos. Es la misma limitación de cualquier
-sistema "sin registro" — para una identificación más segura haría falta un login
-real (con el costo de fricción que eso implica para un menú de pick-up rápido).
+**Nota de privacidad honesta** (si se reactiva): como no hay cuentas reales ni
+contraseñas, esto identificaría al cliente por el texto exacto que escribió
+(nombre/teléfono), no por una identidad verificada.
 
 ## Reglas de seguridad — Firestore
 
