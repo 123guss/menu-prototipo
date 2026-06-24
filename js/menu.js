@@ -10,7 +10,27 @@ const emptyState = document.getElementById('empty-state');
 const loadingState = document.getElementById('loading-state');
 const catScroll = document.getElementById('cat-scroll');
 
+// --- Bloqueo de scroll del body mientras hay un overlay abierto ---
+// Sin esto, en mobile el gesto de "deslizar hacia abajo" dentro de un
+// drawer puede terminar scrolleando la página de fondo en vez del
+// contenido del drawer — se siente como que el formulario "se traba"
+// y no se puede bajar más, aunque el drawer en sí sí tiene scroll.
+// Usamos un contador porque puede haber overlays anidados (ej. el
+// modal de "¿cancelar?" se abre encima del panel de seguimiento).
+let bodyScrollLockCount = 0;
+function lockBodyScroll() {
+  bodyScrollLockCount += 1;
+  document.body.style.overflow = 'hidden';
+}
+function unlockBodyScroll() {
+  bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+  if (bodyScrollLockCount === 0) {
+    document.body.style.overflow = '';
+  }
+}
+
 let allDishes = [];
+let allCategoryNames = [];
 let activeCategory = 'todos';
 
 // cart: array de líneas. Cada línea es un platillo configurado.
@@ -68,8 +88,31 @@ function loadDishes() {
   }
 }
 
+function loadCategoryNames() {
+  try {
+    db.collection('categories')
+      .orderBy('useCount', 'desc')
+      .onSnapshot(
+        (snapshot) => {
+          allCategoryNames = [];
+          snapshot.forEach((doc) => allCategoryNames.push(doc.data().name));
+          renderCategories();
+        },
+        (error) => {
+          console.warn('No se pudieron cargar las categorías:', error);
+        }
+      );
+  } catch (err) {
+    console.warn('Firebase no está configurado aún:', err);
+  }
+}
+
 function renderCategories() {
-  const cats = [...new Set(allDishes.map(d => d.category).filter(Boolean))];
+  // Mostramos todas las categorías conocidas del negocio (aunque estén
+  // vacías), más cualquier categoría que solo exista en algún platillo
+  // (por compatibilidad si la colección de categorías no está sincronizada).
+  const fromDishes = allDishes.map(d => d.category).filter(Boolean);
+  const cats = [...new Set([...allCategoryNames, ...fromDishes])];
 
   catScroll.querySelectorAll('.cat-pill:not([data-cat="todos"])').forEach(el => el.remove());
 
@@ -204,6 +247,7 @@ function openDishModal(dish) {
   updateModalQtyDisplay();
   updateModalTotal();
   dishModalOverlay.hidden = false;
+  lockBodyScroll();
 }
 
 // --- Construye el carrusel de fotos del platillo dentro del modal ---
@@ -319,8 +363,10 @@ document.getElementById('dish-modal-add').addEventListener('click', () => {
 });
 
 function closeDishModal() {
+  if (dishModalOverlay.hidden) return;
   dishModalOverlay.hidden = true;
   modalDish = null;
+  unlockBodyScroll();
 }
 
 document.getElementById('dish-modal-close').addEventListener('click', closeDishModal);
@@ -434,16 +480,23 @@ const cartOverlay = document.getElementById('cart-overlay');
 document.getElementById('cart-toggle').addEventListener('click', () => {
   renderCartItems();
   cartOverlay.hidden = false;
+  lockBodyScroll();
 });
 document.getElementById('cart-close').addEventListener('click', () => {
+  if (cartOverlay.hidden) return;
   cartOverlay.hidden = true;
+  unlockBodyScroll();
 });
 cartOverlay.addEventListener('click', (e) => {
-  if (e.target === cartOverlay) cartOverlay.hidden = true;
+  if (e.target === cartOverlay && !cartOverlay.hidden) {
+    cartOverlay.hidden = true;
+    unlockBodyScroll();
+  }
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
+  if (e.key === 'Escape' && !cartOverlay.hidden) {
     cartOverlay.hidden = true;
+    unlockBodyScroll();
     closeDishModal();
   }
 });
@@ -825,6 +878,7 @@ cartSubmit.addEventListener('click', async (e) => {
   updateCartUI();
   renderMenu();
   cartOverlay.hidden = true;
+  unlockBodyScroll();
 });
 
 // ============================================================
@@ -993,6 +1047,7 @@ document.getElementById('my-order-btn').addEventListener('click', () => {
 // --- Panel de seguimiento (línea de tiempo) ---
 function openOrderStatusPanel(data) {
   orderStatusOverlay.hidden = false;
+  lockBodyScroll();
   renderOrderTimeline(myOrderLastKnownStatus || 'pendiente');
 }
 
@@ -1020,10 +1075,15 @@ function renderOrderTimeline(status) {
 }
 
 document.getElementById('order-status-close').addEventListener('click', () => {
+  if (orderStatusOverlay.hidden) return;
   orderStatusOverlay.hidden = true;
+  unlockBodyScroll();
 });
 orderStatusOverlay.addEventListener('click', (e) => {
-  if (e.target === orderStatusOverlay) orderStatusOverlay.hidden = true;
+  if (e.target === orderStatusOverlay && !orderStatusOverlay.hidden) {
+    orderStatusOverlay.hidden = true;
+    unlockBodyScroll();
+  }
 });
 
 document.getElementById('order-status-cancel-btn').addEventListener('click', () => {
@@ -1037,15 +1097,18 @@ const cancelConfirmOverlay = document.getElementById('cancel-confirm-overlay');
 
 function openCancelConfirm(data) {
   cancelConfirmOverlay.hidden = false;
+  lockBodyScroll();
 }
 
 document.getElementById('cancel-confirm-no').addEventListener('click', () => {
   cancelConfirmOverlay.hidden = true;
+  unlockBodyScroll();
 });
 
 document.getElementById('cancel-confirm-yes').addEventListener('click', async () => {
   const data = getMyOrder();
   cancelConfirmOverlay.hidden = true;
+  unlockBodyScroll();
   if (!data) return;
 
   const timeLeft = CANCEL_WINDOW_MS - (Date.now() - data.sentAt);
@@ -1101,14 +1164,20 @@ document.getElementById('my-orders-toggle').addEventListener('click', () => {
 });
 
 document.getElementById('my-orders-close').addEventListener('click', () => {
+  if (myOrdersOverlay.hidden) return;
   myOrdersOverlay.hidden = true;
+  unlockBodyScroll();
 });
 myOrdersOverlay.addEventListener('click', (e) => {
-  if (e.target === myOrdersOverlay) myOrdersOverlay.hidden = true;
+  if (e.target === myOrdersOverlay && !myOrdersOverlay.hidden) {
+    myOrdersOverlay.hidden = true;
+    unlockBodyScroll();
+  }
 });
 
 function openMyOrders(phone) {
   myOrdersOverlay.hidden = false;
+  lockBodyScroll();
   const key = normalizeCustomerKey(phone);
 
   if (myOrdersUnsubscribe) myOrdersUnsubscribe();
@@ -1167,4 +1236,5 @@ function renderMyOrdersList(orders) {
 // --- Iniciar ---
 updateCartUI();
 loadDishes();
+loadCategoryNames();
 initMyOrderTracker();
