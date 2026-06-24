@@ -94,8 +94,15 @@
     <button class="dish-modal-close" id="dish-modal-close" aria-label="Cerrar">
       <svg viewBox="0 0 20 20" width="18" height="18" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
     </button>
-    <div class="dish-modal-img">
-      <img id="dish-modal-img" src="" alt="">
+    <div class="dish-carousel" id="dish-carousel">
+      <div class="dish-carousel-track" id="dish-carousel-track"></div>
+      <button type="button" class="dish-carousel-arrow dish-carousel-prev" id="dish-carousel-prev" aria-label="Foto anterior">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none"><path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="dish-carousel-arrow dish-carousel-next" id="dish-carousel-next" aria-label="Foto siguiente">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none"><path d="M8 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="dish-carousel-dots" id="dish-carousel-dots"></div>
     </div>
     <div class="dish-modal-body">
       <h3 class="dish-modal-name" id="dish-modal-name"></h3>
@@ -154,9 +161,42 @@
         </div>
       </div>
 
-      <label class="cart-note-label" for="cart-customer-name">Tu nombre y teléfono</label>
-      <input type="text" id="cart-customer-name" class="cart-note" placeholder="Ej: María, 5555-1234" maxlength="60">
-      <p class="cart-customer-hint">Lo usamos para identificar tus pedidos en "Mis pedidos".</p>
+      <div class="cart-section-title">Tus datos</div>
+
+      <div class="cart-field-row">
+        <div class="cart-field-group">
+          <label class="cart-note-label" for="cart-customer-firstname">Nombre</label>
+          <input type="text" id="cart-customer-firstname" class="cart-note" placeholder="María" maxlength="40">
+        </div>
+        <div class="cart-field-group">
+          <label class="cart-note-label" for="cart-customer-lastname">Apellido</label>
+          <input type="text" id="cart-customer-lastname" class="cart-note" placeholder="López" maxlength="40">
+        </div>
+      </div>
+
+      <div class="cart-field-row">
+        <div class="cart-field-group">
+          <label class="cart-note-label" for="cart-customer-phone">Celular</label>
+          <input type="tel" id="cart-customer-phone" class="cart-note" placeholder="5555-1234" maxlength="20">
+        </div>
+        <div class="cart-field-group">
+          <label class="cart-note-label" for="cart-customer-phone2">Número secundario (opcional)</label>
+          <input type="tel" id="cart-customer-phone2" class="cart-note" placeholder="5555-5678" maxlength="20">
+        </div>
+      </div>
+
+      <label class="cart-note-label" for="cart-customer-address">Dirección de entrega</label>
+      <textarea id="cart-customer-address" class="cart-note" rows="2" placeholder="Zona, calle, número de casa, punto de referencia..."></textarea>
+
+      <p class="cart-customer-hint">Tus datos se guardan en este navegador para identificar tus pedidos en "Mis pedidos".</p>
+
+      <div class="cart-section-title">Pago</div>
+
+      <label class="cart-note-label" for="cart-payment-method">Método de pago</label>
+      <div class="payment-method-toggle" id="payment-method-toggle">
+        <button type="button" class="payment-method-btn is-active" data-method="efectivo">Efectivo</button>
+        <button type="button" class="payment-method-btn" data-method="tarjeta">Tarjeta</button>
+      </div>
 
       <label class="cart-note-label" for="cart-payment">¿Con qué billete vas a pagar? (opcional)</label>
       <div class="cart-payment-field">
@@ -207,11 +247,62 @@
   </div>
 </div>
 
-<!-- ===== MI PEDIDO (flotante, con cuenta regresiva para cancelar) ===== -->
+<!-- ===== MI PEDIDO (flotante, abre el panel de seguimiento) ===== -->
 <button class="my-order-btn" id="my-order-btn" hidden>
   <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true"><path d="M10 5v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/></svg>
   <span>Mi pedido · <span id="my-order-timer">10:00</span></span>
 </button>
+
+<!-- ===== PANEL DE SEGUIMIENTO DEL PEDIDO ===== -->
+<div class="cart-overlay" id="order-status-overlay" hidden>
+  <div class="cart-drawer order-status-drawer" role="dialog" aria-modal="true" aria-label="Seguimiento de tu pedido">
+    <div class="cart-header">
+      <h2 class="cart-title">Tu pedido</h2>
+      <button class="cart-close" id="order-status-close" aria-label="Cerrar">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="order-status-body">
+      <div class="order-timeline" id="order-timeline">
+        <div class="order-timeline-step" data-step="pendiente">
+          <span class="order-timeline-dot"></span>
+          <div class="order-timeline-label">
+            <p class="order-timeline-title">Pendiente</p>
+            <p class="order-timeline-sub">Recibimos tu pedido</p>
+          </div>
+        </div>
+        <div class="order-timeline-step" data-step="proceso">
+          <span class="order-timeline-dot"></span>
+          <div class="order-timeline-label">
+            <p class="order-timeline-title">En proceso</p>
+            <p class="order-timeline-sub">Se está preparando</p>
+          </div>
+        </div>
+        <div class="order-timeline-step" data-step="entregado">
+          <span class="order-timeline-dot"></span>
+          <div class="order-timeline-label">
+            <p class="order-timeline-title">Entregado</p>
+            <p class="order-timeline-sub">Listo, buen provecho</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-cancelled-state" id="order-cancelled-state" hidden>
+        <span class="order-cancelled-dot"></span>
+        <div>
+          <p class="order-timeline-title">Pedido cancelado</p>
+          <p class="order-timeline-sub" id="order-cancelled-reason">El negocio canceló tu pedido.</p>
+        </div>
+      </div>
+
+      <div class="order-status-cancel-section" id="order-status-cancel-section">
+        <p class="order-status-cancel-hint">Puedes cancelar este pedido durante <strong id="order-status-timer">10:00</strong>.</p>
+        <button type="button" class="order-status-cancel-btn" id="order-status-cancel-btn">Cancelar pedido</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ===== CONFIRMAR CANCELACIÓN ===== -->
 <div class="cancel-confirm-overlay" id="cancel-confirm-overlay" hidden>

@@ -127,14 +127,17 @@
             </div>
 
             <form id="upload-form" class="upload-form">
-              <label class="upload-drop" id="upload-drop">
-                <input type="file" id="image-input" accept="image/*" required hidden>
-                <div class="upload-drop-empty" id="upload-drop-empty">
-                  <svg viewBox="0 0 48 48" width="36" height="36" fill="none" aria-hidden="true"><path d="M24 8v24M14 18l10-10 10 10M10 36h28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  <p>Toca para subir una foto</p>
+              <div class="field-group">
+                <label>Fotos del platillo (hasta 10)</label>
+                <div class="photo-gallery-grid" id="photo-gallery-grid">
+                  <label class="photo-gallery-add" id="photo-gallery-add">
+                    <input type="file" id="image-input" accept="image/*" multiple hidden>
+                    <svg viewBox="0 0 48 48" width="28" height="28" fill="none" aria-hidden="true"><path d="M24 8v24M14 18l10-10 10 10M10 36h28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>Agregar foto</span>
+                  </label>
                 </div>
-                <img id="upload-preview" hidden>
-              </label>
+                <p class="photo-gallery-count" id="photo-gallery-count">0 de 10 fotos</p>
+              </div>
 
               <div class="field-group">
                 <label for="dish-name">Nombre del platillo</label>

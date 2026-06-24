@@ -65,9 +65,19 @@ categoría todavía"). Los platillos reales se suben desde `/admin/`.
   platillo, y el precio se suma al total de esa línea.
 - **Quitar algo**: el cliente puede escribir una nota libre por platillo (ej. "sin
   cebolla") que viaja con esa línea específica del pedido, no como nota general.
-- **Pago con**: campo opcional en el carrito para que el cliente indique con qué
-  billete pagará (ej. "pago con Q100") — aparece en el ticket y destacado en la
-  tarjeta del pedido dentro del panel del cajero.
+- **Pago con**: campo numérico opcional en el carrito para que el cliente indique
+  con qué billete pagará (ej. Q100). Se valida que sea un número y que sea mayor o
+  igual al total — si pone menos de lo que cuesta el pedido, no lo deja enviar.
+  El panel del cajero calcula y muestra el vuelto automáticamente.
+- **Fotos múltiples**: cada platillo admite hasta 10 fotos (`imageUrls`, array).
+  El cliente las ve como carrusel deslizable (con flechas y puntos) dentro del
+  modal de personalización; en la tarjeta del menú solo se muestra la primera
+  foto, con una etiqueta de cuántas fotos tiene en total.
+- **Datos del cliente**: el carrito pide nombre, apellido, celular (obligatorios),
+  número secundario y nota de pago (opcionales), dirección de entrega (obligatoria)
+  y método de pago (efectivo/tarjeta). El celular normalizado (solo dígitos) es la
+  clave que identifica al cliente para "Mis pedidos" — se guarda en su navegador y
+  se autocompleta la próxima vez.
 
 ## Pendiente antes de funcionar
 
@@ -117,19 +127,23 @@ o se cancela uno mientras el panel está abierto, aparece una notificación
 flotante (toast) con sonido para los pedidos nuevos, y la tarjeta resalta
 brevemente.
 
-## Cancelación desde el cliente
+## Seguimiento y cancelación desde el cliente
 
 Después de enviar un pedido, aparece un botón flotante **"Mi pedido"** con una
-cuenta regresiva de 10 minutos. El cliente puede cancelarlo desde ahí mientras
-el contador no llegue a cero — pasado ese tiempo, el botón desaparece y ya no se
-puede cancelar. Esto se guarda en el `localStorage` del navegador del cliente
-(no requiere cuenta ni código), así que solo funciona en el mismo dispositivo
-desde el que se hizo el pedido.
+cuenta regresiva de 10 minutos. Al tocarlo, se abre un panel con una **línea de
+tiempo visual** (Pendiente → En proceso → Entregado) que muestra en qué etapa
+está el pedido en este momento, o un estado especial si fue cancelado. Dentro de
+ese mismo panel está el botón para cancelar, visible mientras el contador no
+llegue a cero — pasado ese tiempo, la opción de cancelar desaparece. Esto se
+guarda en el `localStorage` del navegador del cliente (no requiere cuenta ni
+código), así que solo funciona en el mismo dispositivo desde el que se hizo el
+pedido.
 
 El cambio de estado se sigue en tiempo real (con un listener a ese pedido
 específico): si el cajero lo cancela, avanza a "en proceso" o lo marca como
-entregado, el cliente recibe una notificación al instante mientras tenga la
-página abierta — sin importar quién hizo el cambio.
+entregado, tanto la línea de tiempo (si el panel está abierto) como una
+notificación toast se actualizan al instante — sin importar quién hizo el
+cambio, y sin que el cliente tenga que cerrar y volver a abrir nada.
 
 ## "Mis pedidos"
 

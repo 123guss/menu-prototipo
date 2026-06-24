@@ -441,6 +441,19 @@ img { display: block; max-width: 100%; }
   border-radius: 100px;
 }
 
+.dish-photo-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(26, 17, 9, 0.7);
+  backdrop-filter: blur(4px);
+  color: var(--cream);
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 100px;
+}
+
 .dish-body {
   padding: 14px 16px 16px;
   display: flex;
@@ -851,12 +864,70 @@ img { display: block; max-width: 100%; }
   box-shadow: var(--shadow-card);
 }
 
-.dish-modal-img {
+.dish-carousel {
+  position: relative;
   aspect-ratio: 16 / 10;
   background: var(--cream-deep);
   overflow: hidden;
 }
-.dish-modal-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.dish-carousel-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.dish-carousel-track::-webkit-scrollbar { display: none; }
+
+.dish-carousel-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+}
+.dish-carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
+
+.dish-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--coffee);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+  transition: background 0.15s ease;
+}
+.dish-carousel-arrow:hover { background: var(--cream); }
+.dish-carousel-arrow[hidden] { display: none; }
+.dish-carousel-prev { left: 12px; }
+.dish-carousel-next { right: 12px; }
+
+.dish-carousel-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.dish-carousel-dots[hidden] { display: none; }
+
+.dish-carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.dish-carousel-dot.is-active { background: var(--cream); transform: scale(1.3); }
 
 .dish-modal-body { padding: 20px 22px 24px; }
 
@@ -1207,6 +1278,179 @@ img { display: block; max-width: 100%; }
   color: var(--coffee-faint);
   margin: -4px 0 14px;
 }
+
+.cart-section-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--coffee);
+  margin: 18px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.cart-section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+.cart-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cart-field-group { min-width: 0; }
+
+.payment-method-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.payment-method-btn {
+  flex: 1;
+  padding: 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--coffee-soft);
+  font-weight: 600;
+  font-size: 0.86rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.payment-method-btn.is-active {
+  background: var(--coffee);
+  color: var(--cream);
+  border-color: var(--coffee);
+}
+
+/* ===================== PANEL DE SEGUIMIENTO (LÍNEA DE TIEMPO) ===================== */
+.order-status-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.order-timeline {
+  display: flex;
+  flex-direction: column;
+}
+.order-timeline[hidden] { display: none; }
+
+.order-timeline-step {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 28px;
+}
+
+.order-timeline-step:last-child { padding-bottom: 0; }
+
+.order-timeline-step::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line-strong);
+}
+.order-timeline-step:last-child::before { display: none; }
+
+.order-timeline-step.is-done::before { background: var(--basil); }
+
+.order-timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--line-strong);
+  flex-shrink: 0;
+  margin-top: 1px;
+  position: relative;
+  z-index: 1;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.order-timeline-step.is-done .order-timeline-dot {
+  background: var(--basil);
+  border-color: var(--basil);
+}
+
+.order-timeline-step.is-current .order-timeline-dot {
+  background: var(--paprika);
+  border-color: var(--paprika);
+  box-shadow: 0 0 0 4px rgba(193, 68, 14, 0.18);
+  animation: timelinePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes timelinePulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(193, 68, 14, 0.18); }
+  50% { box-shadow: 0 0 0 7px rgba(193, 68, 14, 0.1); }
+}
+
+.order-timeline-title {
+  font-weight: 700;
+  font-size: 0.94rem;
+  color: var(--coffee-faint);
+  margin: 0 0 2px;
+  transition: color 0.2s ease;
+}
+
+.order-timeline-step.is-done .order-timeline-title,
+.order-timeline-step.is-current .order-timeline-title {
+  color: var(--coffee);
+}
+
+.order-timeline-sub {
+  font-size: 0.82rem;
+  color: var(--coffee-faint);
+  margin: 0;
+}
+
+.order-cancelled-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(181, 69, 63, 0.08);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.order-cancelled-state[hidden] { display: none; }
+
+.order-cancelled-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #B5453F;
+  flex-shrink: 0;
+}
+
+.order-status-cancel-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.order-status-cancel-section[hidden] { display: none; }
+
+.order-status-cancel-hint {
+  font-size: 0.84rem;
+  color: var(--coffee-soft);
+  margin: 0 0 14px;
+  text-align: center;
+}
+.order-status-cancel-hint strong { color: var(--paprika); }
+
+.order-status-cancel-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 100px;
+  background: transparent;
+  color: #B5453F;
+  border: 1px solid rgba(181, 69, 63, 0.4);
+  font-weight: 700;
+  font-size: 0.88rem;
+  transition: background 0.15s ease;
+}
+.order-status-cancel-btn:hover { background: rgba(181, 69, 63, 0.08); }
 
 /* ===================== MIS PEDIDOS ===================== */
 .my-orders-list {

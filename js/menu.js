@@ -109,10 +109,12 @@ function renderMenu() {
     card.className = 'dish-card';
     card.style.animationDelay = `${Math.min(i * 0.04, 0.3)}s`;
     const inCart = cart.some(line => line.dishId === dish.id);
+    const photos = getDishPhotos(dish);
     card.innerHTML = `
       <div class="dish-img">
-        <img src="${dish.imageUrl}" alt="${escapeHtml(dish.name)}" loading="lazy">
+        <img src="${photos[0] || ''}" alt="${escapeHtml(dish.name)}" loading="lazy">
         ${dish.category ? `<span class="dish-cat-tag">${escapeHtml(dish.category)}</span>` : ''}
+        ${photos.length > 1 ? `<span class="dish-photo-count">${photos.length} fotos</span>` : ''}
       </div>
       <div class="dish-body">
         <div class="dish-info">
@@ -129,6 +131,14 @@ function renderMenu() {
   });
 }
 
+// Devuelve el array de fotos de un platillo, con compatibilidad hacia
+// atrás para platillos viejos que solo tenían imageUrl (sin array).
+function getDishPhotos(dish) {
+  if (Array.isArray(dish.imageUrls) && dish.imageUrls.length > 0) return dish.imageUrls;
+  if (dish.imageUrl) return [dish.imageUrl];
+  return [];
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
@@ -138,7 +148,10 @@ function escapeHtml(str) {
 // ===================== MODAL DE PERSONALIZACIÓN =====================
 
 const dishModalOverlay = document.getElementById('dish-modal-overlay');
-const dishModalImg = document.getElementById('dish-modal-img');
+const dishCarouselTrack = document.getElementById('dish-carousel-track');
+const dishCarouselDots = document.getElementById('dish-carousel-dots');
+const dishCarouselPrev = document.getElementById('dish-carousel-prev');
+const dishCarouselNext = document.getElementById('dish-carousel-next');
 const dishModalName = document.getElementById('dish-modal-name');
 const dishModalPrice = document.getElementById('dish-modal-price');
 const dishModalDesc = document.getElementById('dish-modal-desc');
@@ -151,14 +164,14 @@ const dishModalTotal = document.getElementById('dish-modal-total');
 let modalDish = null;
 let modalQty = 1;
 let modalSelectedExtras = new Set(); // índices de extras seleccionados
+let modalCarouselIndex = 0;
 
 function openDishModal(dish) {
   modalDish = dish;
   modalQty = 1;
   modalSelectedExtras = new Set();
 
-  dishModalImg.src = dish.imageUrl;
-  dishModalImg.alt = dish.name;
+  buildDishCarousel(getDishPhotos(dish), dish.name);
   dishModalName.textContent = dish.name;
   dishModalPrice.textContent = `Q${Number(dish.price).toFixed(2)}`;
   dishModalDesc.textContent = dish.description || '';
@@ -192,6 +205,67 @@ function openDishModal(dish) {
   updateModalTotal();
   dishModalOverlay.hidden = false;
 }
+
+// --- Construye el carrusel de fotos del platillo dentro del modal ---
+function buildDishCarousel(photos, dishName) {
+  modalCarouselIndex = 0;
+  dishCarouselTrack.innerHTML = '';
+  dishCarouselDots.innerHTML = '';
+
+  const list = photos.length > 0 ? photos : [''];
+
+  list.forEach((url, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'dish-carousel-slide';
+    slide.innerHTML = `<img src="${url}" alt="${escapeHtml(dishName)} — foto ${i + 1}">`;
+    dishCarouselTrack.appendChild(slide);
+  });
+
+  const showNav = list.length > 1;
+  dishCarouselPrev.hidden = !showNav;
+  dishCarouselNext.hidden = !showNav;
+  dishCarouselDots.hidden = !showNav;
+
+  if (showNav) {
+    list.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'dish-carousel-dot';
+      dot.setAttribute('aria-label', `Ver foto ${i + 1}`);
+      dot.addEventListener('click', () => goToCarouselSlide(i));
+      dishCarouselDots.appendChild(dot);
+    });
+  }
+
+  updateCarouselDots();
+}
+
+function goToCarouselSlide(index) {
+  const slideWidth = dishCarouselTrack.clientWidth;
+  dishCarouselTrack.scrollTo({ left: slideWidth * index, behavior: 'smooth' });
+}
+
+function updateCarouselDots() {
+  const dots = dishCarouselDots.querySelectorAll('.dish-carousel-dot');
+  dots.forEach((dot, i) => dot.classList.toggle('is-active', i === modalCarouselIndex));
+}
+
+dishCarouselTrack.addEventListener('scroll', () => {
+  const slideWidth = dishCarouselTrack.clientWidth;
+  if (!slideWidth) return;
+  modalCarouselIndex = Math.round(dishCarouselTrack.scrollLeft / slideWidth);
+  updateCarouselDots();
+});
+
+dishCarouselPrev.addEventListener('click', () => {
+  const total = dishCarouselTrack.querySelectorAll('.dish-carousel-slide').length;
+  goToCarouselSlide(Math.max(0, modalCarouselIndex - 1));
+});
+
+dishCarouselNext.addEventListener('click', () => {
+  const total = dishCarouselTrack.querySelectorAll('.dish-carousel-slide').length;
+  goToCarouselSlide(Math.min(total - 1, modalCarouselIndex + 1));
+});
 
 function updateModalQtyDisplay() {
   dishModalQtyNum.textContent = modalQty;
@@ -428,9 +502,14 @@ async function saveOrderToFirestore(paymentAmount) {
       items,
       total: getCartTotal(),
       paymentNote: paymentAmount !== null ? `Q${paymentAmount}` : '',
+      paymentMethod: selectedPaymentMethod,
       note: cartNote.value.trim(),
-      customerName: cartCustomerName.value.trim(),
-      customerKey: normalizeCustomerKey(cartCustomerName.value),
+      customerFirstname: cartCustomerFirstname.value.trim(),
+      customerLastname: cartCustomerLastname.value.trim(),
+      customerPhone: cartCustomerPhone.value.trim(),
+      customerPhone2: cartCustomerPhone2.value.trim(),
+      customerAddress: cartCustomerAddress.value.trim(),
+      customerKey: normalizeCustomerKey(cartCustomerPhone.value),
       status: 'pendiente',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -441,33 +520,59 @@ async function saveOrderToFirestore(paymentAmount) {
   }
 }
 
-// ===================== IDENTIDAD DEL CLIENTE =====================
+// ===================== IDENTIDAD Y DATOS DEL CLIENTE =====================
 // Para que "Mis pedidos" funcione, necesitamos una forma estable de
-// identificar al mismo cliente entre visitas. Usamos lo que escribe en
-// "Tu nombre y teléfono", normalizado (minúsculas, sin espacios extra)
-// como clave — se guarda en localStorage y se autocompleta después.
-const CUSTOMER_KEY_STORAGE = 'customerIdentity';
+// identificar al mismo cliente entre visitas. Usamos el celular
+// (normalizado: solo dígitos) como clave, porque es el dato más único
+// y estable que pedimos. El resto de los campos se guardan también en
+// localStorage para autocompletar la próxima vez.
+const CUSTOMER_STORAGE_KEY = 'customerProfile';
 
-function normalizeCustomerKey(raw) {
-  return raw.trim().toLowerCase().replace(/\s+/g, ' ');
+const cartCustomerFirstname = document.getElementById('cart-customer-firstname');
+const cartCustomerLastname = document.getElementById('cart-customer-lastname');
+const cartCustomerPhone = document.getElementById('cart-customer-phone');
+const cartCustomerPhone2 = document.getElementById('cart-customer-phone2');
+const cartCustomerAddress = document.getElementById('cart-customer-address');
+
+function normalizeCustomerKey(rawPhone) {
+  return rawPhone.replace(/\D/g, '');
 }
 
-function getSavedCustomerName() {
+function getSavedCustomerProfile() {
   try {
-    return localStorage.getItem(CUSTOMER_KEY_STORAGE) || '';
+    const raw = localStorage.getItem(CUSTOMER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch (err) {
-    return '';
+    return null;
   }
 }
 
-function saveCustomerName(name) {
+function saveCustomerProfile(profile) {
   try {
-    localStorage.setItem(CUSTOMER_KEY_STORAGE, name);
+    localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(profile));
   } catch (err) { /* noop */ }
 }
 
-const cartCustomerName = document.getElementById('cart-customer-name');
-cartCustomerName.value = getSavedCustomerName();
+// Autocompletar con lo guardado, si existe
+(function restoreCustomerProfile() {
+  const saved = getSavedCustomerProfile();
+  if (!saved) return;
+  cartCustomerFirstname.value = saved.firstname || '';
+  cartCustomerLastname.value = saved.lastname || '';
+  cartCustomerPhone.value = saved.phone || '';
+  cartCustomerPhone2.value = saved.phone2 || '';
+  cartCustomerAddress.value = saved.address || '';
+})();
+
+// --- Selector de método de pago (efectivo / tarjeta) ---
+let selectedPaymentMethod = 'efectivo';
+document.querySelectorAll('.payment-method-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.payment-method-btn').forEach((b) => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    selectedPaymentMethod = btn.dataset.method;
+  });
+});
 
 // ===================== COOLDOWN ANTI-SPAM =====================
 // Evita que el mismo cliente (mismo navegador) mande pedidos uno
@@ -491,6 +596,14 @@ function markOrderSentNow() {
   } catch (err) { /* noop */ }
 }
 
+// Si el pedido ya se canceló o se entregó, no tiene sentido seguir
+// haciendo esperar al cliente — puede pedir de nuevo de inmediato.
+function clearCooldown() {
+  try {
+    localStorage.removeItem(LAST_ORDER_TIME_KEY);
+  } catch (err) { /* noop */ }
+}
+
 cartSubmit.addEventListener('click', async (e) => {
   e.preventDefault();
   if (getCartCount() === 0) return;
@@ -508,15 +621,22 @@ cartSubmit.addEventListener('click', async (e) => {
     return;
   }
 
-  if (!cartCustomerName.value.trim()) {
+  const requiredFields = [
+    { el: cartCustomerFirstname, label: 'tu nombre' },
+    { el: cartCustomerLastname, label: 'tu apellido' },
+    { el: cartCustomerPhone, label: 'tu celular' },
+    { el: cartCustomerAddress, label: 'tu dirección' },
+  ];
+  const missing = requiredFields.find((f) => !f.el.value.trim());
+  if (missing) {
     if (window.showToast) {
       showToast({
-        title: 'Falta tu nombre y teléfono',
-        message: 'Lo necesitamos para identificar tu pedido.',
+        title: 'Falta un dato',
+        message: `Necesitamos ${missing.label} para procesar tu pedido.`,
         type: 'error',
       });
     }
-    cartCustomerName.focus();
+    missing.el.focus();
     return;
   }
 
@@ -542,7 +662,13 @@ cartSubmit.addEventListener('click', async (e) => {
   }
 
   markOrderSentNow();
-  saveCustomerName(cartCustomerName.value.trim());
+  saveCustomerProfile({
+    firstname: cartCustomerFirstname.value.trim(),
+    lastname: cartCustomerLastname.value.trim(),
+    phone: cartCustomerPhone.value.trim(),
+    phone2: cartCustomerPhone2.value.trim(),
+    address: cartCustomerAddress.value.trim(),
+  });
   rememberMyOrder(orderId, getCartTotal());
   if (window.showToast) {
     showToast({
@@ -580,6 +706,14 @@ const ORDER_STATUS_LABEL = {
   entregado: 'Entregado',
   cancelado: 'Cancelado',
 };
+
+const TIMELINE_ORDER = ['pendiente', 'proceso', 'entregado'];
+
+const orderStatusOverlay = document.getElementById('order-status-overlay');
+const orderTimeline = document.getElementById('order-timeline');
+const orderCancelledState = document.getElementById('order-cancelled-state');
+const orderStatusCancelSection = document.getElementById('order-status-cancel-section');
+const orderStatusTimer = document.getElementById('order-status-timer');
 
 let myOrderUnsubscribe = null;
 let myOrderLastKnownStatus = null;
@@ -647,6 +781,12 @@ function watchMyOrderStatus(orderId) {
       announceStatusChange(status, cancelledByMe);
       cancelledByMe = false;
 
+      // Si el panel de seguimiento está abierto, actualizar la línea de
+      // tiempo en vivo sin que el cliente tenga que cerrar y volver a abrir.
+      if (!orderStatusOverlay.hidden) {
+        renderOrderTimeline(status);
+      }
+
       if (status === 'cancelado') {
         document.getElementById('my-order-btn').hidden = true;
         if (myOrderTickInterval) clearInterval(myOrderTickInterval);
@@ -658,6 +798,12 @@ function watchMyOrderStatus(orderId) {
 }
 
 function announceStatusChange(status, selfCancelled) {
+  // Si el pedido terminó (entregado o cancelado), no tiene sentido seguir
+  // bloqueando al cliente de hacer otro pedido nuevo.
+  if (status === 'entregado' || status === 'cancelado') {
+    clearCooldown();
+  }
+
   if (!window.showToast) return;
   const messages = {
     proceso: { title: 'Tu pedido está en preparación', type: 'info' },
@@ -686,16 +832,60 @@ function tickMyOrderButton(data) {
   if (timeLeft <= 0) {
     btn.hidden = true;
     clearInterval(myOrderTickInterval);
+    orderStatusCancelSection.hidden = true;
     return;
   }
 
   const mins = Math.floor(timeLeft / 60000);
   const secs = Math.floor((timeLeft % 60000) / 1000);
-  document.getElementById('my-order-timer').textContent =
-    `${mins}:${secs.toString().padStart(2, '0')}`;
+  const formatted = `${mins}:${secs.toString().padStart(2, '0')}`;
+  document.getElementById('my-order-timer').textContent = formatted;
+  if (orderStatusTimer) orderStatusTimer.textContent = formatted;
 }
 
 document.getElementById('my-order-btn').addEventListener('click', () => {
+  const data = getMyOrder();
+  if (!data) return;
+  openOrderStatusPanel(data);
+});
+
+// --- Panel de seguimiento (línea de tiempo) ---
+function openOrderStatusPanel(data) {
+  orderStatusOverlay.hidden = false;
+  renderOrderTimeline(myOrderLastKnownStatus || 'pendiente');
+}
+
+function renderOrderTimeline(status) {
+  if (status === 'cancelado') {
+    orderTimeline.hidden = true;
+    orderCancelledState.hidden = false;
+    orderStatusCancelSection.hidden = true;
+    return;
+  }
+
+  orderTimeline.hidden = false;
+  orderCancelledState.hidden = true;
+
+  const currentIndex = TIMELINE_ORDER.indexOf(status);
+  orderTimeline.querySelectorAll('.order-timeline-step').forEach((step) => {
+    const stepIndex = TIMELINE_ORDER.indexOf(step.dataset.step);
+    step.classList.remove('is-done', 'is-current');
+    if (stepIndex < currentIndex) step.classList.add('is-done');
+    if (stepIndex === currentIndex) step.classList.add('is-current');
+  });
+
+  // Una vez entregado, ya no aplica cancelar.
+  orderStatusCancelSection.hidden = status === 'entregado';
+}
+
+document.getElementById('order-status-close').addEventListener('click', () => {
+  orderStatusOverlay.hidden = true;
+});
+orderStatusOverlay.addEventListener('click', (e) => {
+  if (e.target === orderStatusOverlay) orderStatusOverlay.hidden = true;
+});
+
+document.getElementById('order-status-cancel-btn').addEventListener('click', () => {
   const data = getMyOrder();
   if (!data) return;
   openCancelConfirm(data);
@@ -755,8 +945,8 @@ const myOrdersEmpty = document.getElementById('my-orders-empty');
 let myOrdersUnsubscribe = null;
 
 document.getElementById('my-orders-toggle').addEventListener('click', () => {
-  const savedName = getSavedCustomerName();
-  if (!savedName) {
+  const saved = getSavedCustomerProfile();
+  if (!saved || !saved.phone) {
     if (window.showToast) {
       showToast({
         title: 'Todavía no tienes pedidos',
@@ -766,7 +956,7 @@ document.getElementById('my-orders-toggle').addEventListener('click', () => {
     }
     return;
   }
-  openMyOrders(savedName);
+  openMyOrders(saved.phone);
 });
 
 document.getElementById('my-orders-close').addEventListener('click', () => {
@@ -776,9 +966,9 @@ myOrdersOverlay.addEventListener('click', (e) => {
   if (e.target === myOrdersOverlay) myOrdersOverlay.hidden = true;
 });
 
-function openMyOrders(name) {
+function openMyOrders(phone) {
   myOrdersOverlay.hidden = false;
-  const key = normalizeCustomerKey(name);
+  const key = normalizeCustomerKey(phone);
 
   if (myOrdersUnsubscribe) myOrdersUnsubscribe();
 

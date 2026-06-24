@@ -146,10 +146,11 @@ function renderOrdersColumn(status, orders, flashIds) {
   emptyEl.hidden = orders.length > 0;
   listEl.innerHTML = '';
 
-  orders.forEach(order => {
+  orders.forEach((order, index) => {
     const card = document.createElement('div');
     card.className = 'order-card';
     card.dataset.status = status;
+    card.style.animationDelay = `${Math.min(index * 0.05, 0.4)}s`;
     if (flashIds.includes(order.id)) card.classList.add('is-new-flash');
 
     const time = order.createdAt && order.createdAt.toDate
@@ -174,13 +175,23 @@ function renderOrdersColumn(status, orders, flashIds) {
       : '';
     const removeLabel = status === 'entregado' || status === 'cancelado' ? 'Quitar del tablero' : 'Eliminar';
 
+    const fullName = [order.customerFirstname, order.customerLastname].filter(Boolean).join(' ');
+    const phones = [order.customerPhone, order.customerPhone2].filter(Boolean).join(' / ');
+    const methodLabel = order.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efectivo';
+
     card.innerHTML = `
       <div class="order-card-top">
         <span class="order-card-time">${time}</span>
         <span class="order-card-total">Q${Number(order.total).toFixed(2)}</span>
       </div>
+      ${fullName ? `
+      <div class="order-card-customer">
+        <p class="order-card-customer-name">${escapeHtmlAdmin(fullName)}</p>
+        ${phones ? `<p class="order-card-customer-line">${escapeHtmlAdmin(phones)}</p>` : ''}
+        ${order.customerAddress ? `<p class="order-card-customer-line">${escapeHtmlAdmin(order.customerAddress)}</p>` : ''}
+      </div>` : ''}
       <ul class="order-card-items">${itemsHtml}</ul>
-      ${order.paymentNote ? `<p class="order-card-payment">Paga con ${escapeHtmlAdmin(order.paymentNote)}${formatChange(order.paymentNote, order.total)}</p>` : ''}
+      <p class="order-card-payment-method">${methodLabel}${order.paymentNote ? ` · Paga con ${escapeHtmlAdmin(order.paymentNote)}${formatChange(order.paymentNote, order.total)}` : ''}</p>
       ${order.note ? `<p class="order-card-note">${escapeHtmlAdmin(order.note)}</p>` : ''}
       <div class="order-card-actions">
         ${advanceBtn}
@@ -450,24 +461,56 @@ function clearExtrasForm() {
   extrasBuilder.innerHTML = '';
 }
 
-// --- Preview de imagen al elegir archivo ---
+// --- Galería de fotos (hasta 10), con preview individual y opción de quitar ---
+const MAX_PHOTOS = 10;
 const imageInput = document.getElementById('image-input');
-const uploadDropEmpty = document.getElementById('upload-drop-empty');
-const uploadPreview = document.getElementById('upload-preview');
-let selectedFile = null;
+const photoGalleryGrid = document.getElementById('photo-gallery-grid');
+const photoGalleryAdd = document.getElementById('photo-gallery-add');
+const photoGalleryCount = document.getElementById('photo-gallery-count');
+let selectedFiles = [];
+
+function renderPhotoGallery() {
+  photoGalleryGrid.querySelectorAll('.photo-gallery-item').forEach((el) => el.remove());
+  photoGalleryCount.textContent = `${selectedFiles.length} de ${MAX_PHOTOS} fotos`;
+  photoGalleryAdd.hidden = selectedFiles.length >= MAX_PHOTOS;
+
+  selectedFiles.forEach((file, index) => {
+    const item = document.createElement('div');
+    item.className = 'photo-gallery-item';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      item.innerHTML = `
+        <img src="${e.target.result}" alt="">
+        <button type="button" class="photo-gallery-remove" data-index="${index}" aria-label="Quitar foto">
+          <svg viewBox="0 0 20 20" width="12" height="12" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        ${index === 0 ? '<span class="photo-gallery-main">Principal</span>' : ''}
+      `;
+      item.querySelector('.photo-gallery-remove').addEventListener('click', () => {
+        selectedFiles.splice(index, 1);
+        renderPhotoGallery();
+      });
+    };
+    reader.readAsDataURL(file);
+    photoGalleryGrid.insertBefore(item, photoGalleryAdd);
+  });
+}
 
 imageInput.addEventListener('change', () => {
-  const file = imageInput.files[0];
-  if (!file) return;
-  selectedFile = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    uploadPreview.src = e.target.result;
-    uploadPreview.hidden = false;
-    uploadDropEmpty.hidden = true;
-  };
-  reader.readAsDataURL(file);
+  const newFiles = Array.from(imageInput.files || []);
+  const room = MAX_PHOTOS - selectedFiles.length;
+  if (newFiles.length > room) {
+    showStatus(`Solo puedes agregar ${room} foto${room === 1 ? '' : 's'} más (máximo ${MAX_PHOTOS}).`, 'error');
+  }
+  selectedFiles = selectedFiles.concat(newFiles.slice(0, room));
+  imageInput.value = '';
+  renderPhotoGallery();
 });
+
+function clearPhotoGallery() {
+  selectedFiles = [];
+  renderPhotoGallery();
+}
 
 // --- Publicar nuevo platillo ---
 const uploadForm = document.getElementById('upload-form');
@@ -477,8 +520,8 @@ const uploadStatus = document.getElementById('upload-status');
 uploadForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  if (!selectedFile) {
-    showStatus('Por favor selecciona una foto primero.', 'error');
+  if (selectedFiles.length === 0) {
+    showStatus('Agrega al menos una foto.', 'error');
     return;
   }
 
@@ -496,10 +539,13 @@ uploadForm.addEventListener('submit', async (e) => {
   }
 
   publishBtn.disabled = true;
-  showStatus('Subiendo foto…', 'loading');
+  showStatus(`Subiendo ${selectedFiles.length} foto${selectedFiles.length === 1 ? '' : 's'}…`, 'loading');
 
   try {
-    const imageUrl = await uploadToCloudinary(selectedFile);
+    const imageUrls = [];
+    for (const file of selectedFiles) {
+      imageUrls.push(await uploadToCloudinary(file));
+    }
     const extras = getExtrasFromForm();
 
     await db.collection('dishes').add({
@@ -507,7 +553,7 @@ uploadForm.addEventListener('submit', async (e) => {
       price: Number(price),
       category,
       description,
-      imageUrl,
+      imageUrls,
       extras,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -517,10 +563,8 @@ uploadForm.addEventListener('submit', async (e) => {
     showStatus('Publicado. Ya aparece en el menú.', 'success');
     uploadForm.reset();
     clearExtrasForm();
-    uploadPreview.hidden = true;
-    uploadDropEmpty.hidden = false;
+    clearPhotoGallery();
     categoryNewInput.hidden = true;
-    selectedFile = null;
   } catch (err) {
     console.error(err);
     showStatus('Algo salió mal al publicar. Intenta de nuevo.', 'error');
@@ -590,11 +634,15 @@ function loadAdminDishes() {
         dishes.forEach((d) => {
           const item = document.createElement('div');
           item.className = 'admin-item';
+          const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
           item.innerHTML = `
             <button class="admin-item-delete" data-id="${d.id}" aria-label="Eliminar">
               <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
-            <div class="admin-item-img"><img src="${d.imageUrl}" alt="${d.name}"></div>
+            <div class="admin-item-img">
+              <img src="${photos[0] || ''}" alt="${d.name}">
+              ${photos.length > 1 ? `<span class="admin-item-photo-count">${photos.length}</span>` : ''}
+            </div>
             <div class="admin-item-body">
               <p class="admin-item-name">${escapeHtmlAdmin(d.name)}</p>
               <p class="admin-item-price">Q${Number(d.price).toFixed(2)}</p>

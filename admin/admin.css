@@ -210,26 +210,30 @@
 .admin-main { max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; }
 
 .orders-board {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 640px) {
-  .orders-board { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (min-width: 1100px) {
-  .orders-board { grid-template-columns: repeat(4, 1fr); }
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
 }
 
 .orders-column {
   background: var(--kitchen-surface);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  min-height: 160px;
+  opacity: 0;
+  animation: sectionIn 0.4s ease forwards;
+}
+
+.orders-column[data-status="pendiente"] { animation-delay: 0s; }
+.orders-column[data-status="proceso"] { animation-delay: 0.08s; }
+.orders-column[data-status="entregado"] { animation-delay: 0.16s; }
+.orders-column[data-status="cancelado"] { animation-delay: 0.24s; }
+
+@keyframes sectionIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .orders-column-header {
@@ -347,14 +351,32 @@
   font-style: italic;
 }
 
-.order-card-payment {
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--mustard);
-  background: rgba(232, 163, 61, 0.12);
+.order-card-customer {
+  background: rgba(252, 238, 221, 0.06);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.order-card-customer-name {
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--kitchen-text);
+  margin: 0 0 2px;
+}
+
+.order-card-customer-line {
+  font-size: 0.78rem;
+  color: var(--kitchen-text-soft);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.order-card-payment-method {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mustard);
+  margin: 0 0 8px;
 }
 
 .order-card-note {
@@ -455,39 +477,77 @@
   gap: 16px;
 }
 
-.upload-drop {
-  display: block;
-  border: 2px dashed rgba(193, 68, 14, 0.35);
-  border-radius: var(--radius-md);
-  background: var(--cream);
-  aspect-ratio: 4/3;
-  max-height: 230px;
-  cursor: pointer;
-  overflow: hidden;
-  transition: border-color 0.2s ease, background 0.2s ease;
+.photo-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
-.upload-drop:hover { border-color: var(--paprika); background: var(--cream-deep); }
+@media (min-width: 480px) {
+  .photo-gallery-grid { grid-template-columns: repeat(4, 1fr); }
+}
 
-.upload-drop-empty {
-  height: 100%;
+.photo-gallery-add {
+  aspect-ratio: 1/1;
+  border: 2px dashed rgba(193, 68, 14, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--cream);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 4px;
+  cursor: pointer;
   color: var(--paprika);
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
-.upload-drop-empty p {
-  margin: 0;
-  color: var(--coffee-soft);
-  font-size: 0.9rem;
+.photo-gallery-add:hover { border-color: var(--paprika); background: var(--cream-deep); }
+.photo-gallery-add[hidden] { display: none; }
+.photo-gallery-add span {
+  font-size: 0.68rem;
   font-weight: 600;
+  color: var(--coffee-soft);
+  text-align: center;
 }
 
-#upload-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.photo-gallery-item {
+  position: relative;
+  aspect-ratio: 1/1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--cream-deep);
+}
+.photo-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+
+.photo-gallery-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-gallery-main {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.photo-gallery-count {
+  font-size: 0.78rem;
+  color: var(--coffee-faint);
+  margin: 8px 0 0;
 }
 
 .field-group {
@@ -739,10 +799,23 @@
 }
 
 .admin-item-img {
+  position: relative;
   aspect-ratio: 1/1;
   overflow: hidden;
 }
 .admin-item-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.admin-item-photo-count {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 0.64rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 100px;
+}
 
 .admin-item-body { padding: 10px 12px 12px; }
 
