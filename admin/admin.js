@@ -341,6 +341,7 @@ function loadCategories() {
       });
       renderCategoryList();
       renderCategorySelect();
+      renderAdminDishes();
     });
 }
 
@@ -648,64 +649,89 @@ function showStatus(msg, type) {
 // --- Listar platillos existentes en el panel, agrupados por categoría ---
 const adminGrid = document.getElementById('admin-grid');
 const adminEmpty = document.getElementById('admin-empty');
+let lastDishesSnapshot = [];
 
 function loadAdminDishes() {
   db.collection('dishes')
     .orderBy('createdAt', 'desc')
     .onSnapshot((snapshot) => {
-      adminGrid.innerHTML = '';
-      if (snapshot.empty) {
-        adminEmpty.hidden = false;
-        return;
-      }
-      adminEmpty.hidden = true;
-
-      // Agrupar por categoría manteniendo el orden de llegada dentro de cada grupo
-      const grouped = {};
+      lastDishesSnapshot = [];
       snapshot.forEach((doc) => {
-        const d = doc.data();
-        const cat = d.category || UNCATEGORIZED;
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push({ id: doc.id, ...d });
+        lastDishesSnapshot.push({ id: doc.id, ...doc.data() });
       });
-
-      Object.entries(grouped).forEach(([category, dishes]) => {
-        const section = document.createElement('div');
-        section.className = 'admin-category-group';
-        section.innerHTML = `
-          <h3 class="admin-category-heading">${escapeHtmlAdmin(category)} <span class="admin-category-heading-count">${dishes.length}</span></h3>
-          <div class="admin-grid-inner"></div>
-        `;
-        const inner = section.querySelector('.admin-grid-inner');
-
-        dishes.forEach((d) => {
-          const item = document.createElement('div');
-          item.className = 'admin-item';
-          const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
-          item.innerHTML = `
-            <button class="admin-item-delete" data-id="${d.id}" aria-label="Eliminar">
-              <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            </button>
-            <div class="admin-item-img">
-              <img src="${photos[0] || ''}" alt="${d.name}">
-              ${photos.length > 1 ? `<span class="admin-item-photo-count">${photos.length}</span>` : ''}
-            </div>
-            <div class="admin-item-body">
-              <p class="admin-item-name">${escapeHtmlAdmin(d.name)}</p>
-              <p class="admin-item-price">Q${Number(d.price).toFixed(2)}</p>
-              ${d.extras && d.extras.length ? `<p class="admin-item-extras">${d.extras.length} extra${d.extras.length === 1 ? '' : 's'}</p>` : ''}
-            </div>
-          `;
-          inner.appendChild(item);
-        });
-
-        adminGrid.appendChild(section);
-      });
-
-      document.querySelectorAll('.admin-item-delete').forEach(btn => {
-        btn.addEventListener('click', () => openConfirmDelete(btn.dataset.id));
-      });
+      renderAdminDishes();
     });
+}
+
+// Se llama tanto cuando cambian los platillos como cuando cambian las
+// categorías (loadCategories también la invoca), para que una categoría
+// recién creada o que se quedó vacía se vea correctamente sin recargar.
+function renderAdminDishes() {
+  adminGrid.innerHTML = '';
+
+  if (lastDishesSnapshot.length === 0 && allCategories.length === 0) {
+    adminEmpty.hidden = false;
+    return;
+  }
+  adminEmpty.hidden = true;
+
+  // Agrupar platillos por categoría
+  const grouped = {};
+  lastDishesSnapshot.forEach((d) => {
+    const cat = d.category || UNCATEGORIZED;
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(d);
+  });
+
+  // Mostrar TODAS las categorías conocidas (aunque estén vacías), más
+  // "Sin categoría" si hay platillos ahí, para que nada desaparezca
+  // del panel solo porque se quedó momentáneamente sin productos.
+  const categoryNames = allCategories.map((c) => c.name);
+  if (grouped[UNCATEGORIZED] && !categoryNames.includes(UNCATEGORIZED)) {
+    categoryNames.push(UNCATEGORIZED);
+  }
+
+  categoryNames.forEach((category) => {
+    const dishes = grouped[category] || [];
+    const section = document.createElement('div');
+    section.className = 'admin-category-group';
+    section.innerHTML = `
+      <h3 class="admin-category-heading">${escapeHtmlAdmin(category)} <span class="admin-category-heading-count">${dishes.length}</span></h3>
+      <div class="admin-grid-inner"></div>
+    `;
+    const inner = section.querySelector('.admin-grid-inner');
+
+    if (dishes.length === 0) {
+      inner.innerHTML = `<p class="admin-category-empty">Categoría vacía. Pronto habrán productos.</p>`;
+    } else {
+      dishes.forEach((d) => {
+        const item = document.createElement('div');
+        item.className = 'admin-item';
+        const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
+        item.innerHTML = `
+          <button class="admin-item-delete" data-id="${d.id}" aria-label="Eliminar">
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <div class="admin-item-img">
+            <img src="${photos[0] || ''}" alt="${d.name}">
+            ${photos.length > 1 ? `<span class="admin-item-photo-count">${photos.length}</span>` : ''}
+          </div>
+          <div class="admin-item-body">
+            <p class="admin-item-name">${escapeHtmlAdmin(d.name)}</p>
+            <p class="admin-item-price">Q${Number(d.price).toFixed(2)}</p>
+            ${d.extras && d.extras.length ? `<p class="admin-item-extras">${d.extras.length} extra${d.extras.length === 1 ? '' : 's'}</p>` : ''}
+          </div>
+        `;
+        inner.appendChild(item);
+      });
+    }
+
+    adminGrid.appendChild(section);
+  });
+
+  adminGrid.querySelectorAll('.admin-item-delete').forEach((btn) => {
+    btn.addEventListener('click', () => openConfirmDelete(btn.dataset.id));
+  });
 }
 
 // --- Eliminar platillo (con confirmación) ---

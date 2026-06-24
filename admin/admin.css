@@ -683,8 +683,15 @@
   gap: 8px;
 }
 
+@media (max-width: 420px) {
+  .new-category-form {
+    flex-direction: column;
+  }
+}
+
 .new-category-form input {
   flex: 1;
+  min-width: 0;
   padding: 11px 13px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--line-strong);
@@ -704,6 +711,7 @@
   font-size: 0.86rem;
   white-space: nowrap;
   transition: background 0.15s ease;
+  flex-shrink: 0;
 }
 .new-category-btn:hover { background: var(--paprika); }
 
@@ -800,6 +808,18 @@
 }
 @media (min-width: 480px) {
   .admin-grid-inner { grid-template-columns: repeat(3, 1fr); }
+}
+
+.admin-category-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--coffee-faint);
+  background: var(--cream);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin: 0;
 }
 
 .admin-item {

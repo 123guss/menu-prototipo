@@ -766,19 +766,19 @@ cartSubmit.addEventListener('click', async (e) => {
         type: 'error',
       });
     }
-    missing.el.focus();
+    missing.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
   const paymentCheck = validatePayment();
   if (!paymentCheck.valid) {
-    cartPayment.focus();
+    cartPayment.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
   const cardCheck = validateCardFields();
   if (!cardCheck.valid) {
-    cardNumberInput.focus();
+    cardNumberInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 

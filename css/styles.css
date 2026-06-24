@@ -574,6 +574,8 @@ img { display: block; max-width: 100%; }
   flex-direction: column;
   box-shadow: var(--shadow-lift);
   animation: drawerIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes drawerIn {
@@ -586,6 +588,10 @@ img { display: block; max-width: 100%; }
   align-items: center;
   justify-content: space-between;
   padding: 22px 22px 18px;
+  position: sticky;
+  top: 0;
+  background: var(--cream);
+  z-index: 2;
 }
 
 .cart-title {
@@ -609,8 +615,6 @@ img { display: block; max-width: 100%; }
 }
 
 .cart-items {
-  flex: 1;
-  overflow-y: auto;
   padding: 4px 22px;
   display: flex;
   flex-direction: column;
@@ -1528,8 +1532,6 @@ img { display: block; max-width: 100%; }
 
 /* ===================== MIS PEDIDOS ===================== */
 .my-orders-list {
-  flex: 1;
-  overflow-y: auto;
   padding: 4px 22px 22px;
   display: flex;
   flex-direction: column;
