@@ -234,7 +234,6 @@ function renderMenu() {
     card.innerHTML = `
       <div class="dish-img">
         <img src="${photos[0] || FALLBACK_DISH_IMAGE}" alt="${escapeHtml(dish.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK_DISH_IMAGE}';">
-        ${dish.category && dish.category !== UNCATEGORIZED ? `<span class="dish-cat-tag">${escapeHtml(dish.category)}</span>` : ''}
         ${photos.length > 1 ? `<span class="dish-photo-count">${photos.length} fotos</span>` : ''}
       </div>
       <div class="dish-body">

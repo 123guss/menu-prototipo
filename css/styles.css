@@ -172,30 +172,30 @@ img { display: block; max-width: 100%; }
 }
 
 .my-orders-toggle {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
-  background: var(--cream-deep);
+  background: transparent;
   color: var(--coffee-soft);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.my-orders-toggle:hover { background: var(--cream); color: var(--coffee); }
+.my-orders-toggle:hover { background: var(--cream-deep); color: var(--coffee); }
 
 .contact-toggle {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
-  background: var(--cream-deep);
+  background: transparent;
   color: #25D366;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s ease;
 }
-.contact-toggle:hover { background: rgba(37, 211, 102, 0.16); }
+.contact-toggle:hover { background: rgba(37, 211, 102, 0.12); }
 
 .cart-toggle {
   position: relative;
@@ -506,21 +506,6 @@ img { display: block; max-width: 100%; }
   background: var(--cream-deep);
 }
 .dish-img img { width: 100%; height: 100%; object-fit: cover; }
-
-.dish-cat-tag {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(28, 20, 14, 0.6);
-  backdrop-filter: blur(4px);
-  color: #F2E6D8;
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  padding: 4px 10px;
-  border-radius: 100px;
-  border: 1px solid rgba(242, 230, 216, 0.18);
-}
 
 .dish-photo-count {
   position: absolute;
