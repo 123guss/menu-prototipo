@@ -22,6 +22,14 @@
   --basil:         #6B8A4E;
   --basil-deep:    #4A6536;
 
+  /* Acentos adicionales — para variar el sistema sin perder cohesión:
+     ladrillo cocido (más rojo que el terracota de marca) y azul
+     talavera (el toque de cerámica mexicana, usado con moderación) */
+  --brick:         #9C3B2E;
+  --brick-deep:    #7A2C21;
+  --talavera:      #3D7C8C;
+  --talavera-deep: #2C5C68;
+
   /* Texto — crema cálido sobre fondo de madera oscura */
   --coffee:        #F2E6D8;
   --coffee-soft:   #C7B49E;
@@ -61,7 +69,7 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   background:
-    linear-gradient(rgba(28, 20, 14, 0.55), rgba(28, 20, 14, 0.55)),
+    linear-gradient(rgba(28, 20, 14, 0.35), rgba(28, 20, 14, 0.35)),
     var(--cream) url('assets/wood-bg.jpg') center / cover fixed no-repeat;
   color: var(--coffee);
   font-family: var(--font-body);
@@ -380,8 +388,8 @@ img { display: block; max-width: 100%; }
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  border: 1px solid var(--paprika);
-  color: var(--paprika);
+  border: 1px solid var(--brick);
+  color: var(--brick);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -823,7 +831,8 @@ img { display: block; max-width: 100%; }
   color: var(--coffee);
   text-align: center;
   padding: 50px 20px 40px;
-  border-top: 1px solid var(--line);
+  border-top: 3px solid var(--talavera);
+  box-shadow: 0 -1px 0 var(--line) inset;
 }
 
 .footer-mark {
@@ -1196,7 +1205,7 @@ img { display: block; max-width: 100%; }
 
 .toast-success .toast-icon { background: rgba(95, 168, 88, 0.16); color: #3D6B33; }
 .toast-error .toast-icon { background: rgba(181, 69, 63, 0.14); color: #B5453F; }
-.toast-info .toast-icon { background: rgba(193, 89, 46, 0.12); color: var(--paprika, #C1592E); }
+.toast-info .toast-icon { background: rgba(61, 124, 140, 0.14); color: var(--talavera, #3D7C8C); }
 
 .toast-body { flex: 1; min-width: 0; }
 
@@ -1247,6 +1256,7 @@ img { display: block; max-width: 100%; }
 }
 .toast-success .toast-bar-fill { background: #3D6B33; }
 .toast-error .toast-bar-fill { background: #B5453F; }
+.toast-info .toast-bar-fill { background: var(--talavera, #3D7C8C); }
 
 @keyframes toastDeplete {
   from { transform: scaleX(1); }
