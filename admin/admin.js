@@ -7,6 +7,50 @@
 
 const auth = firebase.auth();
 
+// ============================================================
+// MODO OSCURO — se guarda en localStorage para recordarlo entre
+// sesiones. Cambia un atributo en <body>, que dispara las variables
+// de tema oscuro definidas en css/styles.css.
+// ============================================================
+const THEME_STORAGE_KEY = 'cashierTheme';
+const adminBody = document.body;
+const themeToggle = document.getElementById('theme-toggle');
+const themeIconSun = document.querySelector('.theme-icon-sun');
+const themeIconMoon = document.querySelector('.theme-icon-moon');
+
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    adminBody.setAttribute('data-theme', 'dark');
+    themeIconSun.hidden = true;
+    themeIconMoon.hidden = false;
+    themeToggle.setAttribute('aria-label', 'Cambiar a modo claro');
+  } else {
+    adminBody.removeAttribute('data-theme');
+    themeIconSun.hidden = false;
+    themeIconMoon.hidden = true;
+    themeToggle.setAttribute('aria-label', 'Cambiar a modo oscuro');
+  }
+}
+
+function loadSavedTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+  } catch (err) {
+    return 'light';
+  }
+}
+
+applyTheme(loadSavedTheme());
+
+themeToggle.addEventListener('click', () => {
+  const isDark = adminBody.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  applyTheme(next);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+  } catch (err) { /* noop */ }
+});
+
 const loginScreen = document.getElementById('login-screen');
 const adminPanel = document.getElementById('admin-panel');
 const loginForm = document.getElementById('login-form');

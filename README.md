@@ -26,6 +26,14 @@ ni superficies oscuras — el panel usa esquinas casi rectas (4px) y geometría
 administrativa seria, mientras el sitio del cliente mantiene un estilo más
 cálido y redondeado.
 
+### Modo oscuro (solo en el panel del cajero)
+
+El panel del cajero (`/admin/`) tiene un switch de sol/luna en el header que
+cambia todo el panel (pestaña Pedidos + pestaña Menú) a una versión oscura,
+pensado para sesiones largas frente a la pantalla. La preferencia se guarda en
+`localStorage` (clave `cashierTheme`), así que se recuerda entre visitas. El
+sitio del cliente no tiene modo oscuro — solo aplica al panel administrativo.
+
 ## Estructura
 
 ```

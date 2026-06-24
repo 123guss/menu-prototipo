@@ -6,7 +6,8 @@
    pero parte de la misma marca (mismos colores de acento).
 =================================================================== */
 
-.admin-body { background: var(--cream-deep); min-height: 100vh; }
+.admin-body { background: var(--cream-deep); min-height: 100vh; transition: background-color 0.25s ease; }
+.admin-body * { transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
 
 /* ===================== LOGIN ===================== */
 .login-screen[hidden] { display: none; }
@@ -142,6 +143,25 @@
   border-radius: 100px;
   white-space: nowrap;
 }
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--kitchen-line);
+  color: var(--kitchen-text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.theme-toggle:hover { background: var(--kitchen-bg); color: var(--kitchen-text); }
 
 .admin-logout {
   font-size: 0.84rem;
