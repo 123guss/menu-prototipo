@@ -150,7 +150,7 @@
   gap: 10px;
 }
 
-.theme-toggle {
+.admin-notif-icon {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -159,9 +159,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease;
 }
-.theme-toggle:hover { background: var(--kitchen-bg); color: var(--kitchen-text); }
 
 .admin-logout {
   font-size: 0.84rem;
@@ -277,8 +275,8 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.dot-pendiente { background: var(--paprika); box-shadow: 0 0 0 3px rgba(193, 68, 14, 0.25); }
-.dot-proceso { background: var(--mustard); box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.2); }
+.dot-pendiente { background: var(--paprika); box-shadow: 0 0 0 3px rgba(217, 123, 41, 0.25); }
+.dot-proceso { background: var(--mustard); box-shadow: 0 0 0 3px rgba(217, 123, 41, 0.2); }
 .dot-entregado { background: #5FA858; box-shadow: 0 0 0 3px rgba(95, 168, 88, 0.2); }
 .dot-cancelado { background: #B5453F; box-shadow: 0 0 0 3px rgba(181, 69, 63, 0.2); }
 
@@ -893,14 +891,35 @@
   margin: 0;
 }
 
-.admin-item-delete {
+.admin-item-actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 1;
+}
+
+.admin-item-edit {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.92);
+  background: rgba(243,236,227,0.92);
+  color: #1A1714;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.admin-item-edit:hover { background: var(--paprika); color: #1A1714; }
+
+.admin-item-delete {
+  position: static;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(243,236,227,0.92);
   color: #B5453F;
   display: flex;
   align-items: center;
@@ -985,6 +1004,63 @@
   color: white;
 }
 
+/* ===================== EDIT DISH MODAL ===================== */
+.edit-dish-overlay[hidden] { display: none; }
+
+.edit-dish-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 17, 9, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110;
+  padding: 20px;
+}
+
+.edit-dish-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.edit-dish-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--card);
+}
+
+.edit-dish-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--coffee);
+  margin: 0;
+}
+
+.edit-dish-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--cream);
+  color: var(--coffee);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-dish-form {
+  padding: 20px 22px 24px;
+}
+
 /* ===================================================================
    FORMALIDAD DEL PANEL: esquinas casi rectas, sin píldoras ni círculos
    grandes — el sitio del cliente sigue cálido/redondeado, pero el
@@ -1007,7 +1083,8 @@
 .field-group textarea,
 .extra-row input,
 .new-category-form input,
-.login-form input {
+.login-form input,
+.edit-dish-card {
   border-radius: 4px;
 }
 
@@ -1015,9 +1092,11 @@
 .category-chip-count,
 .category-chip-delete,
 .admin-item-delete,
+.admin-item-edit,
 .orders-column-dot,
 .dish-modal-qty-btn,
-.login-mark {
+.login-mark,
+.edit-dish-close {
   border-radius: 50%;
 }
 
@@ -1027,6 +1106,7 @@
 .login-btn,
 .order-action-btn,
 .confirm-cancel,
-.confirm-delete {
+.confirm-delete,
+.confirm-move {
   border-radius: 4px;
 }

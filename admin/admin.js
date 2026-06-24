@@ -7,50 +7,6 @@
 
 const auth = firebase.auth();
 
-// ============================================================
-// MODO OSCURO — se guarda en localStorage para recordarlo entre
-// sesiones. Cambia un atributo en <body>, que dispara las variables
-// de tema oscuro definidas en css/styles.css.
-// ============================================================
-const THEME_STORAGE_KEY = 'cashierTheme';
-const adminBody = document.body;
-const themeToggle = document.getElementById('theme-toggle');
-const themeIconSun = document.querySelector('.theme-icon-sun');
-const themeIconMoon = document.querySelector('.theme-icon-moon');
-
-function applyTheme(theme) {
-  if (theme === 'dark') {
-    adminBody.setAttribute('data-theme', 'dark');
-    themeIconSun.hidden = true;
-    themeIconMoon.hidden = false;
-    themeToggle.setAttribute('aria-label', 'Cambiar a modo claro');
-  } else {
-    adminBody.removeAttribute('data-theme');
-    themeIconSun.hidden = false;
-    themeIconMoon.hidden = true;
-    themeToggle.setAttribute('aria-label', 'Cambiar a modo oscuro');
-  }
-}
-
-function loadSavedTheme() {
-  try {
-    return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
-  } catch (err) {
-    return 'light';
-  }
-}
-
-applyTheme(loadSavedTheme());
-
-themeToggle.addEventListener('click', () => {
-  const isDark = adminBody.getAttribute('data-theme') === 'dark';
-  const next = isDark ? 'light' : 'dark';
-  applyTheme(next);
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, next);
-  } catch (err) { /* noop */ }
-});
-
 const loginScreen = document.getElementById('login-screen');
 const adminPanel = document.getElementById('admin-panel');
 const loginForm = document.getElementById('login-form');
@@ -117,6 +73,9 @@ const ORDER_ADVANCE_LABEL = { pendiente: 'Empezar a preparar', proceso: 'Marcar 
 let knownOrderIds = new Set();
 let knownCancelledIds = new Set();
 let isFirstOrdersLoad = true;
+// IDs de pedidos que el cajero canceló desde su propio panel — para esos
+// no mostramos el toast de "el cliente canceló", porque sería confuso.
+const cancelledByCashier = new Set();
 
 function loadOrdersBoard() {
   db.collection('orders')
@@ -167,9 +126,13 @@ function loadOrdersBoard() {
         }
       }
 
-      if (newlyCancelled.length > 0 && window.showToast) {
+      const clientCancelled = newlyCancelled.filter((id) => !cancelledByCashier.has(id));
+      clientCancelled.forEach((id) => cancelledByCashier.delete(id));
+      newlyCancelled.forEach((id) => cancelledByCashier.delete(id));
+
+      if (clientCancelled.length > 0 && window.showToast) {
         showToast({
-          title: 'Un cliente canceló su pedido',
+          title: 'El cliente ha cancelado el pedido',
           message: 'Se movió a la columna de Cancelados.',
           type: 'error',
         });
@@ -256,9 +219,7 @@ function renderOrdersColumn(status, orders, flashIds) {
   });
 
   listEl.querySelectorAll('.order-action-cancel').forEach(btn => {
-    btn.addEventListener('click', () => {
-      db.collection('orders').doc(btn.dataset.id).update({ status: 'cancelado' });
-    });
+    btn.addEventListener('click', () => openOrderCancelConfirm(btn.dataset.id));
   });
 
   listEl.querySelectorAll('.order-action-remove').forEach(btn => {
@@ -756,9 +717,14 @@ function renderAdminDishes() {
         item.dataset.dishId = d.id;
         const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
         item.innerHTML = `
-          <button class="admin-item-delete" data-id="${d.id}" aria-label="Eliminar">
-            <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
+          <div class="admin-item-actions">
+            <button class="admin-item-edit" data-id="${d.id}" aria-label="Editar">
+              <svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="admin-item-delete" data-id="${d.id}" aria-label="Eliminar">
+              <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+          </div>
           <div class="admin-item-img">
             <img src="${photos[0] || ''}" alt="${d.name}">
             ${photos.length > 1 ? `<span class="admin-item-photo-count">${photos.length}</span>` : ''}
@@ -774,6 +740,14 @@ function renderAdminDishes() {
     }
 
     adminGrid.appendChild(section);
+  });
+
+  adminGrid.querySelectorAll('.admin-item-edit').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dish = lastDishesSnapshot.find((d) => d.id === btn.dataset.id);
+      if (dish) openEditDishModal(dish);
+    });
   });
 
   adminGrid.querySelectorAll('.admin-item-delete').forEach((btn) => {
@@ -856,4 +830,214 @@ document.getElementById('confirm-delete').addEventListener('click', async () => 
   }
   confirmOverlay.hidden = true;
   pendingDeleteId = null;
+});
+
+// --- Confirmación de cancelación de pedido (lado cajero) ---
+const orderCancelConfirmOverlay = document.getElementById('order-cancel-confirm-overlay');
+let pendingOrderCancelId = null;
+
+function openOrderCancelConfirm(id) {
+  pendingOrderCancelId = id;
+  orderCancelConfirmOverlay.hidden = false;
+}
+
+document.getElementById('order-cancel-confirm-no').addEventListener('click', () => {
+  orderCancelConfirmOverlay.hidden = true;
+  pendingOrderCancelId = null;
+});
+
+document.getElementById('order-cancel-confirm-yes').addEventListener('click', async () => {
+  if (!pendingOrderCancelId) return;
+  try {
+    cancelledByCashier.add(pendingOrderCancelId);
+    await db.collection('orders').doc(pendingOrderCancelId).update({ status: 'cancelado' });
+  } catch (err) {
+    console.error('Error cancelando pedido:', err);
+    cancelledByCashier.delete(pendingOrderCancelId);
+  }
+  orderCancelConfirmOverlay.hidden = true;
+  pendingOrderCancelId = null;
+});
+
+// ============================================================
+// EDITAR PLATILLO — nombre, precio, categoría, descripción,
+// quitar fotos existentes y/o agregar fotos nuevas.
+// ============================================================
+
+const editDishOverlay = document.getElementById('edit-dish-overlay');
+const editDishForm = document.getElementById('edit-dish-form');
+const editDishIdInput = document.getElementById('edit-dish-id');
+const editDishNameInput = document.getElementById('edit-dish-name');
+const editDishPriceInput = document.getElementById('edit-dish-price');
+const editDishCategorySelect = document.getElementById('edit-dish-category');
+const editDishDescInput = document.getElementById('edit-dish-desc');
+const editDishStatus = document.getElementById('edit-dish-status');
+const editDishSaveBtn = document.getElementById('edit-dish-save-btn');
+
+const editImageInput = document.getElementById('edit-image-input');
+const editPhotoGalleryGrid = document.getElementById('edit-photo-gallery-grid');
+const editPhotoGalleryAdd = document.getElementById('edit-photo-gallery-add');
+const editPhotoGalleryCount = document.getElementById('edit-photo-gallery-count');
+
+// Fotos existentes (ya en Cloudinary, son URLs) y fotos nuevas (archivos
+// locales todavía no subidos) se manejan en listas separadas, cada una
+// con un uid estable — mismo patrón que el formulario de "Agregar".
+let editExistingPhotos = []; // [{ uid, url }]
+let editNewPhotos = []; // [{ uid, file }]
+
+function openEditDishModal(dish) {
+  editDishIdInput.value = dish.id;
+  editDishNameInput.value = dish.name || '';
+  editDishPriceInput.value = dish.price != null ? dish.price : '';
+  editDishDescInput.value = dish.description || '';
+
+  // Poblar el select de categoría con las categorías reales + la actual
+  editDishCategorySelect.innerHTML = '';
+  const names = allCategories.map((c) => c.name);
+  if (dish.category && !names.includes(dish.category)) names.push(dish.category);
+  if (!names.includes(UNCATEGORIZED)) names.push(UNCATEGORIZED);
+  names.forEach((name) => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    editDishCategorySelect.appendChild(opt);
+  });
+  editDishCategorySelect.value = dish.category || UNCATEGORIZED;
+
+  const photos = dish.imageUrls || (dish.imageUrl ? [dish.imageUrl] : []);
+  editExistingPhotos = photos.map((url) => ({ uid: nextPhotoUid(), url }));
+  editNewPhotos = [];
+  renderEditPhotoGallery();
+
+  editDishStatus.hidden = true;
+  editDishOverlay.hidden = false;
+}
+
+function renderEditPhotoGallery() {
+  editPhotoGalleryGrid.querySelectorAll('.photo-gallery-item').forEach((el) => el.remove());
+  const total = editExistingPhotos.length + editNewPhotos.length;
+  editPhotoGalleryCount.textContent = `${total} de ${MAX_PHOTOS} fotos`;
+  editPhotoGalleryAdd.hidden = total >= MAX_PHOTOS;
+
+  editExistingPhotos.forEach(({ uid, url }, index) => {
+    const item = document.createElement('div');
+    item.className = 'photo-gallery-item';
+    item.innerHTML = `
+      <img src="${url}" alt="">
+      <button type="button" class="photo-gallery-remove" aria-label="Quitar foto">
+        <svg viewBox="0 0 20 20" width="12" height="12" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      ${index === 0 ? '<span class="photo-gallery-main">Principal</span>' : ''}
+    `;
+    item.querySelector('.photo-gallery-remove').addEventListener('click', () => {
+      editExistingPhotos = editExistingPhotos.filter((p) => p.uid !== uid);
+      renderEditPhotoGallery();
+    });
+    editPhotoGalleryGrid.insertBefore(item, editPhotoGalleryAdd);
+  });
+
+  editNewPhotos.forEach(({ uid, file }) => {
+    const item = document.createElement('div');
+    item.className = 'photo-gallery-item';
+    editPhotoGalleryGrid.insertBefore(item, editPhotoGalleryAdd);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!editNewPhotos.some((p) => p.uid === uid)) return;
+      const isFirst = editExistingPhotos.length === 0 && editNewPhotos[0] && editNewPhotos[0].uid === uid;
+      item.innerHTML = `
+        <img src="${e.target.result}" alt="">
+        <button type="button" class="photo-gallery-remove" aria-label="Quitar foto">
+          <svg viewBox="0 0 20 20" width="12" height="12" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        ${isFirst ? '<span class="photo-gallery-main">Principal</span>' : ''}
+      `;
+      item.querySelector('.photo-gallery-remove').addEventListener('click', () => {
+        editNewPhotos = editNewPhotos.filter((p) => p.uid !== uid);
+        renderEditPhotoGallery();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+editImageInput.addEventListener('change', () => {
+  const newFiles = Array.from(editImageInput.files || []);
+  const room = MAX_PHOTOS - editExistingPhotos.length - editNewPhotos.length;
+  if (newFiles.length > room) {
+    editDishStatus.textContent = `Solo puedes agregar ${room} foto${room === 1 ? '' : 's'} más (máximo ${MAX_PHOTOS}).`;
+    editDishStatus.className = 'upload-status error';
+    editDishStatus.hidden = false;
+  }
+  const toAdd = newFiles.slice(0, room).map((file) => ({ uid: nextPhotoUid(), file }));
+  editNewPhotos = editNewPhotos.concat(toAdd);
+  editImageInput.value = '';
+  renderEditPhotoGallery();
+});
+
+function closeEditDishModal() {
+  editDishOverlay.hidden = true;
+  editExistingPhotos = [];
+  editNewPhotos = [];
+}
+
+document.getElementById('edit-dish-close').addEventListener('click', closeEditDishModal);
+editDishOverlay.addEventListener('click', (e) => {
+  if (e.target === editDishOverlay) closeEditDishModal();
+});
+
+editDishForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (editExistingPhotos.length + editNewPhotos.length === 0) {
+    editDishStatus.textContent = 'El platillo necesita al menos una foto.';
+    editDishStatus.className = 'upload-status error';
+    editDishStatus.hidden = false;
+    return;
+  }
+
+  const dishId = editDishIdInput.value;
+  const name = editDishNameInput.value.trim();
+  const price = editDishPriceInput.value;
+  const category = editDishCategorySelect.value;
+  const description = editDishDescInput.value.trim();
+
+  if (!name || !price || !category) {
+    editDishStatus.textContent = 'Llena todos los campos obligatorios.';
+    editDishStatus.className = 'upload-status error';
+    editDishStatus.hidden = false;
+    return;
+  }
+
+  editDishSaveBtn.disabled = true;
+  editDishStatus.textContent = 'Guardando…';
+  editDishStatus.className = 'upload-status';
+  editDishStatus.hidden = false;
+
+  try {
+    const newUploadedUrls = [];
+    for (const { file } of editNewPhotos) {
+      newUploadedUrls.push(await uploadToCloudinary(file));
+    }
+    const finalUrls = [...editExistingPhotos.map((p) => p.url), ...newUploadedUrls];
+
+    await db.collection('dishes').doc(dishId).update({
+      name,
+      price: Number(price),
+      category,
+      description,
+      imageUrls: finalUrls,
+    });
+    await touchCategory(category);
+
+    editDishStatus.textContent = 'Cambios guardados.';
+    editDishStatus.className = 'upload-status success';
+    setTimeout(closeEditDishModal, 700);
+  } catch (err) {
+    console.error('Error guardando cambios:', err);
+    editDishStatus.textContent = 'Algo salió mal al guardar. Intenta de nuevo.';
+    editDishStatus.className = 'upload-status error';
+  } finally {
+    editDishSaveBtn.disabled = false;
+  }
 });
