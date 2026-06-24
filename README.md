@@ -106,6 +106,31 @@ categoría todavía"). Los platillos reales se suben desde `/admin/`.
   servidor ni tu base de datos. Conectar eso es trabajo aparte (cuenta de
   comercio, verificación del negocio, comisión por transacción).
 
+## Datos del negocio (colección "restaurant")
+
+El sitio puede leer un documento de configuración para mostrar el nombre y el
+WhatsApp reales del negocio sin tocar código, y para marcarlo como cerrado
+cuando no se están recibiendo pedidos. Si este documento no existe, el sitio
+sigue funcionando normal con los valores por defecto del código (el
+placeholder de nombre y el `WHATSAPP_NUMBER` de `firebase-config.js`).
+
+**Por ahora se edita directamente desde Firebase Console** (no hay una
+pantalla en el panel del cajero para esto todavía):
+
+1. Ve a Firestore Database → "Iniciar colección"
+2. Nombre de la colección: `restaurant`
+3. ID del documento: escribe exactamente `info`
+4. Agrega los campos que quieras usar (todos opcionales, solo se aplican los
+   que existan):
+
+| Campo | Tipo | Para qué sirve |
+|---|---|---|
+| `name` | string | Reemplaza "[Nombre de tu restaurante]" en el header y footer |
+| `whatsapp` | string | Número con código de país, sin signos (ej. `50212345678`) — reemplaza el botón de contacto |
+| `isOpen` | boolean | Si es `false`, aparece un aviso de "Estamos cerrados" y se bloquea el envío de pedidos |
+| `schedule` | string | Texto libre que se muestra junto al aviso de cerrado (ej. "Abrimos a las 12pm") |
+| `logo`, `phone`, `address`, `deliveryCost`, `minimumOrder` | string/number | Reservados para uso futuro — el sitio los guarda en memoria pero todavía no los muestra en ningún lado |
+
 ## Pendiente antes de funcionar
 
 Sigue el mismo proceso que ya hiciste para Lily Nails, pero con un **proyecto de
@@ -154,6 +179,33 @@ o se cancela uno mientras el panel está abierto, aparece una notificación
 flotante (toast) con sonido para los pedidos nuevos, y la tarjeta resalta
 brevemente.
 
+Arriba del tablero hay un **buscador por nombre o teléfono** — filtra las 4
+columnas en tiempo real sobre los pedidos ya cargados (no hace una consulta
+nueva a Firestore por cada letra escrita).
+
+## Platillos activos/inactivos
+
+Cada platillo tiene un botón de pausa/play junto al de editar. Pausar un
+platillo (sin borrarlo) lo oculta del menú público al instante — útil cuando
+se agota un ingrediente — pero sigue editable y visible (atenuado, con
+etiqueta "Pausado") en el panel del cajero. Reactivarlo lo regresa al menú
+público de inmediato.
+
+## Límite de cantidad por platillo
+
+Cada línea del carrito tiene un máximo de 20 unidades (tanto al personalizar
+un platillo como al ajustar la cantidad ya en el carrito), para evitar
+entradas absurdas por error o mala intención — con un aviso claro cuando se
+llega al tope.
+
+## Imagen de respaldo
+
+Si la foto de un platillo falla al cargar (URL rota, imagen borrada de
+Cloudinary, problema de red), se muestra automáticamente un ícono de plato
+genérico en su lugar — tanto en el menú público como en el panel del cajero.
+No depende de ningún archivo externo (es un SVG incluido directo en el código),
+así que nunca puede fallar a su vez.
+
 ## Seguimiento y cancelación desde el cliente
 
 Después de enviar un pedido, aparece un botón flotante **"Mi pedido"** con una
@@ -197,6 +249,10 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
     match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /restaurant/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }

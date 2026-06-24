@@ -7,6 +7,10 @@
 
 const auth = firebase.auth();
 
+// Imagen de respaldo si la foto de un platillo falla al cargar.
+// SVG inline en data-URI — nunca depende de un archivo externo.
+const ADMIN_FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%232B2017'/%3E%3Ccircle cx='100' cy='90' r='38' fill='none' stroke='%238C7A65' stroke-width='3'/%3E%3Cpath d='M70 150h60M85 130v25M115 130v25' stroke='%238C7A65' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E";
+
 const loginScreen = document.getElementById('login-screen');
 const adminPanel = document.getElementById('admin-panel');
 const loginForm = document.getElementById('login-form');
@@ -77,6 +81,39 @@ let isFirstOrdersLoad = true;
 // no mostramos el toast de "el cliente canceló", porque sería confuso.
 const cancelledByCashier = new Set();
 
+// --- Búsqueda por nombre o teléfono ---
+let lastGroupedOrders = { pendiente: [], proceso: [], entregado: [], cancelado: [] };
+let ordersSearchQuery = '';
+
+function orderMatchesSearch(order, query) {
+  if (!query) return true;
+  const haystack = [
+    order.customerFirstname,
+    order.customerLastname,
+    order.customerPhone,
+    order.customerPhone2,
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(query);
+}
+
+function renderFilteredOrdersBoard(newlyArrived, newlyCancelled) {
+  const query = ordersSearchQuery.trim().toLowerCase();
+  const filtered = {};
+  Object.keys(lastGroupedOrders).forEach((status) => {
+    filtered[status] = lastGroupedOrders[status].filter((order) => orderMatchesSearch(order, query));
+  });
+
+  renderOrdersColumn('pendiente', filtered.pendiente, newlyArrived || []);
+  renderOrdersColumn('proceso', filtered.proceso, []);
+  renderOrdersColumn('entregado', filtered.entregado, []);
+  renderOrdersColumn('cancelado', filtered.cancelado, newlyCancelled || []);
+}
+
+document.getElementById('orders-search').addEventListener('input', (e) => {
+  ordersSearchQuery = e.target.value;
+  renderFilteredOrdersBoard([], []);
+});
+
 function loadOrdersBoard() {
   db.collection('orders')
     .orderBy('createdAt', 'desc')
@@ -106,10 +143,8 @@ function loadOrdersBoard() {
         });
       }
 
-      renderOrdersColumn('pendiente', grouped.pendiente, newlyArrived);
-      renderOrdersColumn('proceso', grouped.proceso, []);
-      renderOrdersColumn('entregado', grouped.entregado, []);
-      renderOrdersColumn('cancelado', grouped.cancelado, newlyCancelled);
+      lastGroupedOrders = grouped;
+      renderFilteredOrdersBoard(newlyArrived, newlyCancelled);
 
       const newCountBadge = document.getElementById('new-orders-count');
       newCountBadge.textContent = grouped.pendiente.length;
@@ -713,11 +748,18 @@ function renderAdminDishes() {
       dishes.forEach((d) => {
         const item = document.createElement('div');
         item.className = 'admin-item';
+        if (d.active === false) item.classList.add('is-inactive');
         item.draggable = true;
         item.dataset.dishId = d.id;
         const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
+        const isActive = d.active !== false;
         item.innerHTML = `
           <div class="admin-item-actions">
+            <button class="admin-item-toggle" data-id="${d.id}" data-active="${isActive}" aria-label="${isActive ? 'Pausar platillo' : 'Activar platillo'}">
+              ${isActive
+                ? '<svg viewBox="0 0 20 20" width="14" height="14" fill="none"><rect x="6" y="4" width="3" height="12" rx="1" fill="currentColor"/><rect x="11" y="4" width="3" height="12" rx="1" fill="currentColor"/></svg>'
+                : '<svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M6 4l10 6-10 6V4z" fill="currentColor"/></svg>'}
+            </button>
             <button class="admin-item-edit" data-id="${d.id}" aria-label="Editar">
               <svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -726,8 +768,9 @@ function renderAdminDishes() {
             </button>
           </div>
           <div class="admin-item-img">
-            <img src="${photos[0] || ''}" alt="${d.name}">
+            <img src="${photos[0] || ADMIN_FALLBACK_IMAGE}" alt="${d.name}" onerror="this.onerror=null;this.src='${ADMIN_FALLBACK_IMAGE}';">
             ${photos.length > 1 ? `<span class="admin-item-photo-count">${photos.length}</span>` : ''}
+            ${!isActive ? '<span class="admin-item-paused-tag">Pausado</span>' : ''}
           </div>
           <div class="admin-item-body">
             <p class="admin-item-name">${escapeHtmlAdmin(d.name)}</p>
@@ -740,6 +783,18 @@ function renderAdminDishes() {
     }
 
     adminGrid.appendChild(section);
+  });
+
+  adminGrid.querySelectorAll('.admin-item-toggle').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const isActive = btn.dataset.active === 'true';
+      try {
+        await db.collection('dishes').doc(btn.dataset.id).update({ active: !isActive });
+      } catch (err) {
+        console.error('No se pudo cambiar el estado del platillo:', err);
+      }
+    });
   });
 
   adminGrid.querySelectorAll('.admin-item-edit').forEach((btn) => {
@@ -923,7 +978,7 @@ function renderEditPhotoGallery() {
     const item = document.createElement('div');
     item.className = 'photo-gallery-item';
     item.innerHTML = `
-      <img src="${url}" alt="">
+      <img src="${url}" alt="" onerror="this.onerror=null;this.src='${ADMIN_FALLBACK_IMAGE}';">
       <button type="button" class="photo-gallery-remove" aria-label="Quitar foto">
         <svg viewBox="0 0 20 20" width="12" height="12" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>

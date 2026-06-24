@@ -33,6 +33,75 @@ let allDishes = [];
 let allCategoryNames = [];
 let activeCategory = 'todos';
 
+// Imagen de respaldo si la foto de un platillo falla al cargar (URL
+// rota, imagen borrada de Cloudinary, sin conexión). Es un SVG inline
+// codificado en data-URI — nunca depende de un archivo externo que
+// podría a su vez fallar.
+const FALLBACK_DISH_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%232B2017'/%3E%3Ccircle cx='100' cy='90' r='38' fill='none' stroke='%238C7A65' stroke-width='3'/%3E%3Cpath d='M70 150h60M85 130v25M115 130v25' stroke='%238C7A65' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E";
+
+// ============================================================
+// DATOS DEL NEGOCIO (colección "restaurant", documento "info")
+// Si el negocio configuró este documento en Firestore, lo usamos
+// para sobrescribir nombre/WhatsApp/horario en la página. Si no
+// existe todavía, no pasa nada — se quedan los valores por defecto
+// del código (el placeholder "[Nombre de tu restaurante]" y el
+// WHATSAPP_NUMBER de firebase-config.js).
+// ============================================================
+let restaurantInfo = null;
+
+function applyRestaurantInfo(data) {
+  if (!data) return;
+  restaurantInfo = data;
+
+  if (data.name) {
+    document.querySelectorAll('.brand-name, .footer-name').forEach((el) => {
+      el.textContent = data.name;
+    });
+    document.title = data.name;
+  }
+
+  if (data.whatsapp) {
+    const link = `https://wa.me/${data.whatsapp}?text=${encodeURIComponent('Hola! Quisiera ver el menú')}`;
+    const headerLink = document.getElementById('header-whatsapp');
+    const footerLink = document.getElementById('footer-whatsapp');
+    if (headerLink) headerLink.href = link;
+    if (footerLink) footerLink.href = link;
+  }
+
+  // Si el negocio está marcado como cerrado, mostramos un aviso fijo
+  // y bloqueamos el envío de pedidos — pero el menú sigue siendo
+  // visible (el cliente puede ver qué hay, solo no puede pedir ahora).
+  if (data.isOpen === false) {
+    showClosedBanner(data.schedule);
+  }
+}
+
+function showClosedBanner(schedule) {
+  if (document.getElementById('closed-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'closed-banner';
+  banner.className = 'closed-banner';
+  banner.innerHTML = `
+    <span>Estamos cerrados en este momento.</span>
+    ${schedule ? `<span class="closed-banner-schedule">${escapeHtml(schedule)}</span>` : ''}
+  `;
+  document.body.prepend(banner);
+}
+
+function loadRestaurantInfo() {
+  try {
+    db.collection('restaurant').doc('info').get()
+      .then((doc) => {
+        if (doc.exists) applyRestaurantInfo(doc.data());
+      })
+      .catch((err) => {
+        console.warn('No se pudo cargar la info del negocio (usando valores por defecto):', err);
+      });
+  } catch (err) {
+    console.warn('Firebase no está configurado aún:', err);
+  }
+}
+
 // cart: array de líneas. Cada línea es un platillo configurado.
 // { lineId, dishId, name, basePrice, qty, extras: [{name, price}], removeNote }
 let cart = [];
@@ -73,7 +142,11 @@ function loadDishes() {
         (snapshot) => {
           const fromFirestore = [];
           snapshot.forEach((doc) => {
-            fromFirestore.push({ id: doc.id, ...doc.data() });
+            const dish = { id: doc.id, ...doc.data() };
+            // Solo mostramos al cliente platillos activos. Un platillo
+            // pausado (active: false) sigue existiendo y editable en el
+            // panel, pero no aparece en el menú público mientras esté así.
+            if (dish.active !== false) fromFirestore.push(dish);
           });
           showDishes(fromFirestore);
         },
@@ -160,7 +233,7 @@ function renderMenu() {
     const photos = getDishPhotos(dish);
     card.innerHTML = `
       <div class="dish-img">
-        <img src="${photos[0] || ''}" alt="${escapeHtml(dish.name)}" loading="lazy">
+        <img src="${photos[0] || FALLBACK_DISH_IMAGE}" alt="${escapeHtml(dish.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK_DISH_IMAGE}';">
         ${dish.category && dish.category !== UNCATEGORIZED ? `<span class="dish-cat-tag">${escapeHtml(dish.category)}</span>` : ''}
         ${photos.length > 1 ? `<span class="dish-photo-count">${photos.length} fotos</span>` : ''}
       </div>
@@ -266,7 +339,7 @@ function buildDishCarousel(photos, dishName) {
   list.forEach((url, i) => {
     const slide = document.createElement('div');
     slide.className = 'dish-carousel-slide';
-    slide.innerHTML = `<img src="${url}" alt="${escapeHtml(dishName)} — foto ${i + 1}">`;
+    slide.innerHTML = `<img src="${url || FALLBACK_DISH_IMAGE}" alt="${escapeHtml(dishName)} — foto ${i + 1}" onerror="this.onerror=null;this.src='${FALLBACK_DISH_IMAGE}';">`;
     dishCarouselTrack.appendChild(slide);
   });
 
@@ -335,6 +408,8 @@ function updateModalTotal() {
   dishModalTotal.textContent = `Q${(unitPrice * modalQty).toFixed(2)}`;
 }
 
+const MAX_QTY_PER_LINE = 20;
+
 document.getElementById('dish-modal-qty-minus').addEventListener('click', () => {
   if (modalQty > 1) {
     modalQty -= 1;
@@ -343,6 +418,12 @@ document.getElementById('dish-modal-qty-minus').addEventListener('click', () => 
   }
 });
 document.getElementById('dish-modal-qty-plus').addEventListener('click', () => {
+  if (modalQty >= MAX_QTY_PER_LINE) {
+    if (window.showToast) {
+      showToast({ title: 'Cantidad máxima', message: `Hasta ${MAX_QTY_PER_LINE} por platillo.`, type: 'info' });
+    }
+    return;
+  }
   modalQty += 1;
   updateModalQtyDisplay();
   updateModalTotal();
@@ -393,6 +474,14 @@ function lineSubtotal(line) {
 function changeLineQty(lineId, delta) {
   const line = cart.find((l) => l.lineId === lineId);
   if (!line) return;
+
+  if (delta > 0 && line.qty >= MAX_QTY_PER_LINE) {
+    if (window.showToast) {
+      showToast({ title: 'Cantidad máxima', message: `Hasta ${MAX_QTY_PER_LINE} por platillo.`, type: 'info' });
+    }
+    return;
+  }
+
   line.qty += delta;
   if (line.qty <= 0) {
     cart = cart.filter((l) => l.lineId !== lineId);
@@ -795,6 +884,17 @@ function clearCooldown() {
 cartSubmit.addEventListener('click', async (e) => {
   e.preventDefault();
   if (getCartCount() === 0) return;
+
+  if (restaurantInfo && restaurantInfo.isOpen === false) {
+    if (window.showToast) {
+      showToast({
+        title: 'Estamos cerrados',
+        message: 'No podemos recibir pedidos en este momento.',
+        type: 'error',
+      });
+    }
+    return;
+  }
 
   const cooldownLeft = getCooldownRemaining();
   if (cooldownLeft > 0) {
@@ -1242,4 +1342,5 @@ function renderMyOrdersList(orders) {
 updateCartUI();
 loadDishes();
 loadCategoryNames();
+loadRestaurantInfo();
 initMyOrderTracker();
