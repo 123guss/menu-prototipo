@@ -1134,11 +1134,10 @@
 }
 
 /* ===================================================================
-   FORMALIDAD DEL PANEL: esquinas casi rectas, sin píldoras ni círculos
-   grandes — el sitio del cliente sigue cálido/redondeado, pero el
-   panel del cajero usa una geometría más seria y administrativa.
-   (admin.css carga después de styles.css, así que estas reglas ya
-   ganan la cascada sin necesitar !important.)
+   El panel del cajero comparte el mismo lenguaje visual cálido que
+   el sitio del cliente — esquinas suavemente redondeadas (no rectas,
+   no en forma de píldora), usando las mismas variables de --radius
+   definidas en styles.css.
 =================================================================== */
 .orders-column,
 .order-card,
@@ -1157,7 +1156,7 @@
 .new-category-form input,
 .login-form input,
 .edit-dish-card {
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .admin-tab-count,
@@ -1180,5 +1179,5 @@
 .confirm-cancel,
 .confirm-delete,
 .confirm-move {
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
