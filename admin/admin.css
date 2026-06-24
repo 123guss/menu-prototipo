@@ -294,6 +294,10 @@
   padding: 0 7px;
 }
 
+.orders-column[data-status="cancelado"] .orders-column-count {
+  color: var(--paprika);
+}
+
 .orders-column-list {
   display: flex;
   flex-direction: column;
@@ -436,10 +440,10 @@
 
 .order-action-remove {
   background: transparent;
-  color: var(--kitchen-text-soft);
-  border: 1px solid var(--kitchen-line);
+  color: var(--paprika);
+  border: none;
 }
-.order-action-remove:hover { color: #E0716A; border-color: #E0716A; }
+.order-action-remove:hover { color: var(--paprika-deep); }
 
 /* ===================== MENU MANAGEMENT TAB ===================== */
 #tab-menu {
@@ -929,9 +933,20 @@
 
 .admin-empty {
   text-align: center;
-  color: var(--coffee-soft);
-  font-size: 0.9rem;
-  padding: 20px 0;
+  padding: 40px 20px;
+}
+
+.admin-empty-main {
+  font-size: 0.92rem;
+  color: var(--kitchen-text-soft);
+  margin: 0 0 6px;
+}
+
+.admin-empty-sub {
+  font-size: 0.84rem;
+  color: var(--kitchen-text-soft);
+  opacity: 0.6;
+  margin: 0;
 }
 
 /* ===================== CONFIRM DELETE MODAL ===================== */

@@ -242,29 +242,9 @@ img { display: block; max-width: 100%; }
   border-radius: var(--radius-md);
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 38%, rgba(217, 123, 41, 0.22), transparent 42%),
-    radial-gradient(circle at 50% 38%, rgba(217, 123, 41, 0.10), transparent 60%),
+    radial-gradient(circle at 65% 30%, rgba(217, 123, 41, 0.14), transparent 50%),
     linear-gradient(160deg, #1A1714 0%, #0E0C0A 100%);
   border: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: lampGlow 5s ease-in-out infinite;
-}
-
-@keyframes lampGlow {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.06); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-visual { animation: none; }
-}
-
-.hero-visual-lamp {
-  width: 38%;
-  max-width: 140px;
-  opacity: 0.92;
 }
 
 @media (max-width: 859px) {
@@ -345,6 +325,62 @@ img { display: block; max-width: 100%; }
 
 @media (max-width: 640px) {
   .hero { padding: 44px 20px 40px; }
+}
+
+/* ===================== CHEF EXPERIENCE SECTION ===================== */
+.chef-section {
+  padding: 0 20px 64px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.chef-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (min-width: 860px) {
+  .chef-grid { grid-template-columns: 0.9fr 1.1fr; }
+}
+
+.chef-visual {
+  aspect-ratio: 16 / 11;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 30% 70%, rgba(217, 123, 41, 0.10), transparent 50%),
+    linear-gradient(160deg, #1A1714 0%, #0E0C0A 100%);
+}
+
+.chef-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--coffee);
+  margin: 0 0 18px;
+}
+
+.chef-sub {
+  font-size: 0.96rem;
+  color: var(--coffee-soft);
+  line-height: 1.65;
+  max-width: 380px;
+  margin: 0 0 28px;
+}
+
+.chef-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--paprika);
+  color: var(--paprika);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===================== CATEGORY NAV ===================== */
@@ -511,7 +547,7 @@ img { display: block; max-width: 100%; }
   padding: 70px 20px;
   color: var(--coffee-soft);
 }
-.empty-state svg, .loading-state svg { color: var(--mustard-deep); opacity: 0.6; margin-bottom: 14px; }
+.empty-state svg, .loading-state svg { color: var(--paprika); margin-bottom: 14px; }
 .empty-state p { margin: 4px 0; }
 .empty-sub { font-size: 0.85rem; opacity: 0.8; }
 
