@@ -260,6 +260,14 @@ img { display: block; max-width: 100%; }
   border: 1px solid var(--line);
 }
 
+.hero-visual-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 @media (max-width: 859px) {
   .hero-visual { aspect-ratio: 16 / 10; order: -1; }
 }
@@ -371,12 +379,23 @@ img { display: block; max-width: 100%; }
 }
 
 .chef-visual {
+  position: relative;
   aspect-ratio: 16 / 11;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
+  overflow: hidden;
   background:
-    radial-gradient(circle at 30% 70%, rgba(193, 89, 46, 0.10), transparent 50%),
-    linear-gradient(160deg, #2B2017 0%, #1C140E 100%);
+    radial-gradient(circle at 30% 70%, rgba(193, 89, 46, 0.12), transparent 50%),
+    linear-gradient(rgba(28, 20, 14, 0.45), rgba(28, 20, 14, 0.45)),
+    url('../assets/wood-bg.jpg') center / cover no-repeat;
+}
+
+.chef-visual-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .chef-content {
