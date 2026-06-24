@@ -178,6 +178,9 @@ function renderOrdersColumn(status, orders, flashIds) {
     const fullName = [order.customerFirstname, order.customerLastname].filter(Boolean).join(' ');
     const phones = [order.customerPhone, order.customerPhone2].filter(Boolean).join(' / ');
     const methodLabel = order.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efectivo';
+    const cardLine = order.cardInfo
+      ? ` · ${escapeHtmlAdmin(order.cardInfo.brand)} terminada en ${escapeHtmlAdmin(order.cardInfo.lastFour)} (${escapeHtmlAdmin(order.cardInfo.holder)})`
+      : '';
 
     card.innerHTML = `
       <div class="order-card-top">
@@ -191,7 +194,7 @@ function renderOrdersColumn(status, orders, flashIds) {
         ${order.customerAddress ? `<p class="order-card-customer-line">${escapeHtmlAdmin(order.customerAddress)}</p>` : ''}
       </div>` : ''}
       <ul class="order-card-items">${itemsHtml}</ul>
-      <p class="order-card-payment-method">${methodLabel}${order.paymentNote ? ` · Paga con ${escapeHtmlAdmin(order.paymentNote)}${formatChange(order.paymentNote, order.total)}` : ''}</p>
+      <p class="order-card-payment-method">${methodLabel}${cardLine}${order.paymentNote ? ` · Paga con ${escapeHtmlAdmin(order.paymentNote)}${formatChange(order.paymentNote, order.total)}` : ''}</p>
       ${order.note ? `<p class="order-card-note">${escapeHtmlAdmin(order.note)}</p>` : ''}
       <div class="order-card-actions">
         ${advanceBtn}

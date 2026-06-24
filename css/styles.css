@@ -26,12 +26,13 @@
   --coffee-soft:   #6B5644;
   --coffee-faint:  #9C8975;
 
-  /* Cocina (panel oscuro) */
-  --kitchen-bg:     #1A1109;
-  --kitchen-surface: #271A0F;
-  --kitchen-line:   rgba(252, 238, 221, 0.12);
-  --kitchen-text:    #FCEEDD;
-  --kitchen-text-soft: rgba(252, 238, 221, 0.6);
+  /* Panel del cajero — antes oscuro ("cocina de noche"), ahora claro
+     y formal: blanco con beige sutil de contraste, sin negro. */
+  --kitchen-bg:     #FAF7F2;
+  --kitchen-surface: #FFFFFF;
+  --kitchen-line:   rgba(45, 27, 14, 0.12);
+  --kitchen-text:    #2D1B0E;
+  --kitchen-text-soft: #6B5644;
 
   --line:          rgba(45, 27, 14, 0.10);
   --line-strong:   rgba(45, 27, 14, 0.16);
@@ -50,6 +51,11 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
 
 body {
   margin: 0;
@@ -1319,6 +1325,46 @@ img { display: block; max-width: 100%; }
   background: var(--coffee);
   color: var(--cream);
   border-color: var(--coffee);
+}
+
+.payment-cash-fields[hidden],
+.payment-card-fields[hidden] { display: none; }
+
+.payment-card-fields {
+  background: var(--cream-deep);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.card-brand-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.card-brand-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--coffee);
+}
+
+.card-brand-icon {
+  width: 34px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--line-strong);
+  transition: background 0.2s ease;
+}
+.card-brand-icon.has-brand { background: var(--paprika); }
+
+.card-demo-notice {
+  font-size: 0.74rem;
+  color: var(--coffee-faint);
+  margin: 8px 0 0;
+  line-height: 1.4;
 }
 
 /* ===================== PANEL DE SEGUIMIENTO (LÍNEA DE TIEMPO) ===================== */

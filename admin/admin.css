@@ -1,10 +1,9 @@
 /* ===================================================================
-   [Nombre de tu restaurante] — Panel de cocina
-   El tablero de pedidos usa una superficie oscura ("cocina de
-   noche": alto contraste, legible bajo presión, sin deslumbrar
-   en un ambiente con poca luz). El resto del panel (login, gestión
-   del menú) usa el mismo sistema cálido cream/paprika del sitio
-   público, para que se sienta una sola marca, no dos productos.
+   [Nombre de tu restaurante] — Panel de cajero
+   Tema claro y formal: blanco con acentos beige, esquinas casi
+   rectas, sin negro ni superficies oscuras — pensado para verse
+   serio y administrativo, distinto del tono cálido del sitio público
+   pero parte de la misma marca (mismos colores de acento).
 =================================================================== */
 
 .admin-body { background: var(--cream-deep); min-height: 100vh; }
@@ -153,7 +152,7 @@
   border: 1px solid var(--kitchen-line);
   transition: background 0.15s ease, color 0.15s ease;
 }
-.admin-logout:hover { background: rgba(252, 238, 221, 0.08); color: var(--kitchen-text); }
+.admin-logout:hover { background: var(--kitchen-bg); color: var(--kitchen-text); }
 
 /* ===================== ADMIN TABS ===================== */
 .admin-tabs {
@@ -264,7 +263,7 @@
 .dot-cancelado { background: #B5453F; box-shadow: 0 0 0 3px rgba(181, 69, 63, 0.2); }
 
 .orders-column-count {
-  background: rgba(252, 238, 221, 0.08);
+  background: var(--kitchen-bg);
   color: var(--kitchen-text-soft);
   font-size: 0.76rem;
   font-weight: 700;
@@ -295,7 +294,7 @@
 
 /* Order card */
 .order-card {
-  background: rgba(252, 238, 221, 0.05);
+  background: var(--kitchen-bg);
   border-radius: var(--radius-sm);
   padding: 14px;
   border-left: 3px solid var(--paprika);
@@ -352,7 +351,7 @@
 }
 
 .order-card-customer {
-  background: rgba(252, 238, 221, 0.06);
+  background: var(--card);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
   margin-bottom: 10px;
@@ -375,14 +374,14 @@
 .order-card-payment-method {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--mustard);
+  color: var(--paprika-deep);
   margin: 0 0 8px;
 }
 
 .order-card-note {
   font-size: 0.8rem;
   color: var(--kitchen-text-soft);
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--card);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
   margin-bottom: 10px;
@@ -912,4 +911,50 @@
 .confirm-delete {
   background: #B5453F;
   color: white;
+}
+
+/* ===================================================================
+   FORMALIDAD DEL PANEL: esquinas casi rectas, sin píldoras ni círculos
+   grandes — el sitio del cliente sigue cálido/redondeado, pero el
+   panel del cajero usa una geometría más seria y administrativa.
+   (admin.css carga después de styles.css, así que estas reglas ya
+   ganan la cascada sin necesitar !important.)
+=================================================================== */
+.orders-column,
+.order-card,
+.admin-card,
+.login-card,
+.confirm-card,
+.admin-item,
+.photo-gallery-item,
+.photo-gallery-add,
+.category-chip,
+.upload-drop,
+.field-group input,
+.field-group select,
+.field-group textarea,
+.extra-row input,
+.new-category-form input,
+.login-form input {
+  border-radius: 4px;
+}
+
+.admin-tab-count,
+.category-chip-count,
+.category-chip-delete,
+.admin-item-delete,
+.orders-column-dot,
+.dish-modal-qty-btn,
+.login-mark {
+  border-radius: 50%;
+}
+
+.admin-logout,
+.new-category-btn,
+.publish-btn,
+.login-btn,
+.order-action-btn,
+.confirm-cancel,
+.confirm-delete {
+  border-radius: 4px;
 }

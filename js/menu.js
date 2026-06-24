@@ -488,7 +488,7 @@ cartPayment.addEventListener('input', validatePayment);
 
 // Guarda el pedido en Firestore para que aparezca en el tablero del
 // cajero, y devuelve el ID del documento creado (o null si falló).
-async function saveOrderToFirestore(paymentAmount) {
+async function saveOrderToFirestore(paymentAmount, cardInfo) {
   const items = cart.map((line) => ({
     name: line.name,
     qty: line.qty,
@@ -503,6 +503,7 @@ async function saveOrderToFirestore(paymentAmount) {
       total: getCartTotal(),
       paymentNote: paymentAmount !== null ? `Q${paymentAmount}` : '',
       paymentMethod: selectedPaymentMethod,
+      cardInfo: cardInfo || null,
       note: cartNote.value.trim(),
       customerFirstname: cartCustomerFirstname.value.trim(),
       customerLastname: cartCustomerLastname.value.trim(),
@@ -566,13 +567,142 @@ function saveCustomerProfile(profile) {
 
 // --- Selector de método de pago (efectivo / tarjeta) ---
 let selectedPaymentMethod = 'efectivo';
+const paymentCashFields = document.getElementById('payment-cash-fields');
+const paymentCardFields = document.getElementById('payment-card-fields');
+
 document.querySelectorAll('.payment-method-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.payment-method-btn').forEach((b) => b.classList.remove('is-active'));
     btn.classList.add('is-active');
     selectedPaymentMethod = btn.dataset.method;
+
+    paymentCashFields.hidden = selectedPaymentMethod !== 'efectivo';
+    paymentCardFields.hidden = selectedPaymentMethod !== 'tarjeta';
   });
 });
+
+// ===================== CAMPOS DE TARJETA (demo, sin pago real) =====================
+// PROTOTIPO: esto valida el formato de los datos y los guarda como texto
+// plano en Firestore para la demostración. NO es seguro para una tarjeta
+// real — un pago de verdad nunca debe pasar estos datos por tu propio
+// código ni guardarlos en tu base de datos. Lo correcto es usar un campo
+// embebido de una pasarela de pago (ej. Stripe Elements) que mande los
+// datos directo a la pasarela y te devuelva solo un token. Ver el README
+// para más contexto antes de usar esto con dinero real.
+
+const cardNumberInput = document.getElementById('card-number');
+const cardHolderInput = document.getElementById('card-holder');
+const cardExpiryInput = document.getElementById('card-expiry');
+const cardCvvInput = document.getElementById('card-cvv');
+const cardFieldsHint = document.getElementById('card-fields-hint');
+const cardBrandName = document.getElementById('card-brand-name');
+const cardBrandIcon = document.getElementById('card-brand-icon');
+
+const CARD_BRANDS = [
+  { name: 'Visa', pattern: /^4/, cvvLength: 3 },
+  { name: 'Mastercard', pattern: /^5[1-5]/, cvvLength: 3 },
+  { name: 'Mastercard', pattern: /^2[2-7]/, cvvLength: 3 },
+  { name: 'American Express', pattern: /^3[47]/, cvvLength: 4 },
+];
+
+function detectCardBrand(digits) {
+  return CARD_BRANDS.find((b) => b.pattern.test(digits)) || null;
+}
+
+// Formatea el número en grupos de 4 mientras se escribe (solo dígitos)
+cardNumberInput.addEventListener('input', () => {
+  const digits = cardNumberInput.value.replace(/\D/g, '').slice(0, 16);
+  cardNumberInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
+
+  const brand = detectCardBrand(digits);
+  cardBrandName.textContent = brand ? brand.name : 'Tarjeta';
+  cardBrandIcon.className = `card-brand-icon ${brand ? 'has-brand' : ''}`;
+  cardCvvInput.maxLength = brand && brand.cvvLength === 4 ? 4 : 3;
+});
+
+// El nombre del titular solo acepta letras y espacios
+cardHolderInput.addEventListener('input', () => {
+  cardHolderInput.value = cardHolderInput.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+});
+
+// La fecha de vencimiento se autoformatea como MM/AA mientras se escribe
+cardExpiryInput.addEventListener('input', () => {
+  let digits = cardExpiryInput.value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length >= 3) {
+    digits = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  cardExpiryInput.value = digits;
+});
+
+// El CVV solo acepta dígitos
+cardCvvInput.addEventListener('input', () => {
+  cardCvvInput.value = cardCvvInput.value.replace(/\D/g, '');
+});
+
+function showCardHint(message) {
+  cardFieldsHint.textContent = message;
+  cardFieldsHint.hidden = false;
+}
+
+// Valida los campos de tarjeta solo si el método elegido es "tarjeta".
+// Devuelve { valid: true/false, data: {...} } — data solo se llena si es válido.
+function validateCardFields() {
+  if (selectedPaymentMethod !== 'tarjeta') {
+    return { valid: true, data: null };
+  }
+
+  cardFieldsHint.hidden = true;
+  const digits = cardNumberInput.value.replace(/\D/g, '');
+  const brand = detectCardBrand(digits);
+
+  if (digits.length < 13 || digits.length > 16) {
+    showCardHint('El número de tarjeta no parece válido.');
+    return { valid: false, data: null };
+  }
+  if (!brand) {
+    showCardHint('No reconocemos esa tarjeta (debe ser Visa, Mastercard o Amex).');
+    return { valid: false, data: null };
+  }
+  if (!cardHolderInput.value.trim()) {
+    showCardHint('Escribe el nombre del titular.');
+    return { valid: false, data: null };
+  }
+
+  const expiryMatch = /^(\d{2})\/(\d{2})$/.exec(cardExpiryInput.value);
+  if (!expiryMatch) {
+    showCardHint('La fecha de vencimiento debe tener el formato MM/AA.');
+    return { valid: false, data: null };
+  }
+  const month = Number(expiryMatch[1]);
+  const year = Number(expiryMatch[2]);
+  if (month < 1 || month > 12) {
+    showCardHint('El mes de vencimiento no es válido.');
+    return { valid: false, data: null };
+  }
+  const now = new Date();
+  const currentYear = now.getFullYear() % 100;
+  const currentMonth = now.getMonth() + 1;
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+    showCardHint('Esa tarjeta ya está vencida.');
+    return { valid: false, data: null };
+  }
+
+  const expectedCvvLength = brand.cvvLength;
+  if (cardCvvInput.value.length !== expectedCvvLength) {
+    showCardHint(`El CVV debe tener ${expectedCvvLength} dígitos.`);
+    return { valid: false, data: null };
+  }
+
+  return {
+    valid: true,
+    data: {
+      brand: brand.name,
+      lastFour: digits.slice(-4),
+      holder: cardHolderInput.value.trim(),
+      expiry: cardExpiryInput.value,
+    },
+  };
+}
 
 // ===================== COOLDOWN ANTI-SPAM =====================
 // Evita que el mismo cliente (mismo navegador) mande pedidos uno
@@ -646,8 +776,14 @@ cartSubmit.addEventListener('click', async (e) => {
     return;
   }
 
+  const cardCheck = validateCardFields();
+  if (!cardCheck.valid) {
+    cardNumberInput.focus();
+    return;
+  }
+
   cartSubmit.classList.add('is-sending');
-  const orderId = await saveOrderToFirestore(paymentCheck.amount);
+  const orderId = await saveOrderToFirestore(paymentCheck.amount, cardCheck.data);
   cartSubmit.classList.remove('is-sending');
 
   if (!orderId) {
@@ -681,6 +817,11 @@ cartSubmit.addEventListener('click', async (e) => {
   cartNote.value = '';
   cartPayment.value = '';
   cartPaymentHint.hidden = true;
+  cardNumberInput.value = '';
+  cardHolderInput.value = '';
+  cardExpiryInput.value = '';
+  cardCvvInput.value = '';
+  cardFieldsHint.hidden = true;
   updateCartUI();
   renderMenu();
   cartOverlay.hidden = true;

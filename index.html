@@ -198,12 +198,40 @@
         <button type="button" class="payment-method-btn" data-method="tarjeta">Tarjeta</button>
       </div>
 
-      <label class="cart-note-label" for="cart-payment">¿Con qué billete vas a pagar? (opcional)</label>
-      <div class="cart-payment-field">
-        <span class="cart-payment-prefix">Q</span>
-        <input type="number" id="cart-payment" class="cart-payment-input" placeholder="100" min="0" step="1" inputmode="numeric">
+      <div class="payment-cash-fields" id="payment-cash-fields">
+        <label class="cart-note-label" for="cart-payment">¿Con qué billete vas a pagar? (opcional)</label>
+        <div class="cart-payment-field">
+          <span class="cart-payment-prefix">Q</span>
+          <input type="number" id="cart-payment" class="cart-payment-input" placeholder="100" min="0" step="1" inputmode="numeric">
+        </div>
+        <p class="cart-payment-hint" id="cart-payment-hint" hidden></p>
       </div>
-      <p class="cart-payment-hint" id="cart-payment-hint" hidden></p>
+
+      <div class="payment-card-fields" id="payment-card-fields" hidden>
+        <div class="card-brand-preview" id="card-brand-preview">
+          <span class="card-brand-name" id="card-brand-name">Tarjeta</span>
+          <span class="card-brand-icon" id="card-brand-icon"></span>
+        </div>
+
+        <label class="cart-note-label" for="card-number">Número de tarjeta</label>
+        <input type="text" id="card-number" class="cart-note" placeholder="0000 0000 0000 0000" inputmode="numeric" maxlength="19">
+
+        <label class="cart-note-label" for="card-holder">Nombre del titular</label>
+        <input type="text" id="card-holder" class="cart-note" placeholder="Como aparece en la tarjeta">
+
+        <div class="cart-field-row">
+          <div class="cart-field-group">
+            <label class="cart-note-label" for="card-expiry">Vencimiento</label>
+            <input type="text" id="card-expiry" class="cart-note" placeholder="MM/AA" inputmode="numeric" maxlength="5">
+          </div>
+          <div class="cart-field-group">
+            <label class="cart-note-label" for="card-cvv">CVV</label>
+            <input type="text" id="card-cvv" class="cart-note" placeholder="123" inputmode="numeric" maxlength="4">
+          </div>
+        </div>
+        <p class="cart-payment-hint" id="card-fields-hint" hidden></p>
+        <p class="card-demo-notice">Prototipo: estos datos no procesan un pago real, solo se guardan para la demostración.</p>
+      </div>
 
       <label class="cart-note-label" for="cart-note">Nota para tu pedido (opcional)</label>
       <textarea id="cart-note" class="cart-note" rows="2" placeholder="Ej: agregar cubiertos extra, tocar el timbre..."></textarea>

@@ -20,11 +20,11 @@ si se decide invertir en ella.
 
 Dirección visual: cocina casera seria, no plantilla genérica ni carta vacía.
 Colores cálidos y apetitosos (paprika, mostaza, café tostado, verde albahaca),
-con suficiente densidad para sentirse un producto completo. El cliente usa
-fondo claro (crema); el panel de pedidos usa una superficie oscura tipo
-"cocina de noche" — alto contraste, fácil de leer rápido bajo presión, que
-es justo el contexto real donde alguien va a usar esa pantalla mientras
-cocina o empaca pedidos.
+con suficiente densidad para sentirse un producto completo. Tanto el sitio del
+cliente como el panel del cajero usan fondo claro (blanco y beige), sin negro
+ni superficies oscuras — el panel usa esquinas casi rectas (4px) y geometría
+administrativa seria, mientras el sitio del cliente mantiene un estilo más
+cálido y redondeado.
 
 ## Estructura
 
@@ -78,6 +78,20 @@ categoría todavía"). Los platillos reales se suben desde `/admin/`.
   y método de pago (efectivo/tarjeta). El celular normalizado (solo dígitos) es la
   clave que identifica al cliente para "Mis pedidos" — se guarda en su navegador y
   se autocompleta la próxima vez.
+- **Pago con tarjeta (demo, no apto para producción)**: si el cliente elige
+  "Tarjeta", aparecen los campos de número (con detección automática de
+  Visa/Mastercard/Amex y máscara de entrada), nombre del titular, vencimiento
+  (MM/AA, valida que no esté vencida) y CVV (3 o 4 dígitos según la marca). Esto
+  **solo valida el formato** — no procesa ningún pago real. En Firestore se
+  guarda únicamente la marca, los últimos 4 dígitos, el titular y el vencimiento;
+  nunca el número completo ni el CVV. **Importante**: un sistema de pago real
+  nunca debe pasar estos datos por tu propio código ni guardarlos en tu base de
+  datos — eso viola las normas de seguridad de tarjetas (PCI-DSS). Lo correcto es
+  usar un campo embebido de una pasarela de pago real (ej. Stripe Elements, o un
+  banco local), que manda los datos directo del navegador del cliente a la
+  pasarela y te devuelve solo un token — los datos de la tarjeta nunca tocan tu
+  servidor ni tu base de datos. Conectar eso es trabajo aparte (cuenta de
+  comercio, verificación del negocio, comisión por transacción).
 
 ## Pendiente antes de funcionar
 
