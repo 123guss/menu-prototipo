@@ -635,6 +635,20 @@ cartPayment.addEventListener('input', validatePayment);
 
 // Guarda el pedido en Firestore para que aparezca en el tablero del
 // cajero, y devuelve el ID del documento creado (o null si falló).
+// Genera un código corto de 4 caracteres para rastrear el pedido por
+// teléfono/de palabra (sin caracteres ambiguos como 0/O o 1/I). No es
+// un identificador único garantizado (con ~1 millón de combinaciones
+// posibles, el riesgo de choque es muy bajo para el volumen de un
+// negocio pequeño, pero existe en teoría).
+const ORDER_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function generateOrderCode() {
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += ORDER_CODE_CHARS[Math.floor(Math.random() * ORDER_CODE_CHARS.length)];
+  }
+  return code;
+}
+
 async function saveOrderToFirestore(paymentAmount, cardInfo) {
   const items = cart.map((line) => ({
     name: line.name,
@@ -645,6 +659,7 @@ async function saveOrderToFirestore(paymentAmount, cardInfo) {
   }));
 
   try {
+    const code = generateOrderCode();
     const docRef = await db.collection('orders').add({
       items,
       total: getCartTotal(),
@@ -658,10 +673,11 @@ async function saveOrderToFirestore(paymentAmount, cardInfo) {
       customerPhone2: cartCustomerPhone2.value.trim(),
       customerAddress: cartCustomerAddress.value.trim(),
       customerKey: normalizeCustomerKey(cartCustomerPhone.value),
+      orderCode: code,
       status: 'pendiente',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    return docRef.id;
+    return { orderId: docRef.id, orderCode: code };
   } catch (err) {
     console.error('No se pudo guardar el pedido:', err);
     return null;
@@ -681,6 +697,28 @@ const cartCustomerLastname = document.getElementById('cart-customer-lastname');
 const cartCustomerPhone = document.getElementById('cart-customer-phone');
 const cartCustomerPhone2 = document.getElementById('cart-customer-phone2');
 const cartCustomerAddress = document.getElementById('cart-customer-address');
+
+// --- Restricciones de teclado en tiempo real (no solo al enviar) ---
+// Nombre/apellido: solo letras (con acentos y ñ), espacios, apóstrofes
+// y guiones — para nombres compuestos como "María José" o "O'Brien".
+function restrictToLetters(input) {
+  input.addEventListener('input', () => {
+    const cleaned = input.value.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñÜü' -]/g, '');
+    if (cleaned !== input.value) input.value = cleaned;
+  });
+}
+restrictToLetters(cartCustomerFirstname);
+restrictToLetters(cartCustomerLastname);
+
+// Celular: solo dígitos, espacios y guiones (para formatos como "5555-1234").
+function restrictToPhoneChars(input) {
+  input.addEventListener('input', () => {
+    const cleaned = input.value.replace(/[^0-9 -]/g, '');
+    if (cleaned !== input.value) input.value = cleaned;
+  });
+}
+restrictToPhoneChars(cartCustomerPhone);
+restrictToPhoneChars(cartCustomerPhone2);
 
 function normalizeCustomerKey(rawPhone) {
   return rawPhone.replace(/\D/g, '');
@@ -941,10 +979,10 @@ cartSubmit.addEventListener('click', async (e) => {
   }
 
   cartSubmit.classList.add('is-sending');
-  const orderId = await saveOrderToFirestore(paymentCheck.amount, cardCheck.data);
+  const result = await saveOrderToFirestore(paymentCheck.amount, cardCheck.data);
   cartSubmit.classList.remove('is-sending');
 
-  if (!orderId) {
+  if (!result) {
     if (window.showToast) {
       showToast({
         title: 'No se pudo enviar el pedido',
@@ -954,6 +992,8 @@ cartSubmit.addEventListener('click', async (e) => {
     }
     return;
   }
+
+  const { orderId, orderCode } = result;
 
   markOrderSentNow();
   saveCustomerProfile({
@@ -966,9 +1006,10 @@ cartSubmit.addEventListener('click', async (e) => {
   rememberMyOrder(orderId, getCartTotal());
   if (window.showToast) {
     showToast({
-      title: 'Pedido enviado',
-      message: 'El negocio ya lo puede ver. Puedes cancelarlo desde "Mi pedido" los próximos 10 minutos.',
+      title: `Pedido enviado · Código ${orderCode}`,
+      message: 'Apunta tu número de pedido para rastrearlo después. Puedes cancelarlo desde "Mi pedido" los próximos 10 minutos.',
       type: 'success',
+      duration: 9000,
     });
   }
   cart = [];
@@ -1016,6 +1057,7 @@ const orderStatusCancelSection = document.getElementById('order-status-cancel-se
 const orderStatusTimer = document.getElementById('order-status-timer');
 
 let myOrderUnsubscribe = null;
+let trackedOrderUnsubscribe = null;
 let myOrderLastKnownStatus = null;
 let cancelledByMe = false;
 
@@ -1070,9 +1112,16 @@ function watchMyOrderStatus(orderId) {
     const status = doc.data().status;
 
     // No avisar en la primera lectura (sería redundante con el toast
-    // de "pedido enviado" que ya se mostró al confirmar).
+    // de "pedido enviado" que ya se mostró al confirmar) — EXCEPTO si
+    // el pedido ya llegó marcado como "entregado" desde la primera
+    // lectura (el cliente cerró la página y la reabre después de que
+    // el negocio ya lo entregó): en ese caso sí queremos avisarle.
     if (myOrderLastKnownStatus === null) {
       myOrderLastKnownStatus = status;
+      if (status === 'entregado') {
+        announceStatusChange(status, false);
+        startDeliveredCountdown();
+      }
       return;
     }
 
@@ -1085,6 +1134,10 @@ function watchMyOrderStatus(orderId) {
       // tiempo en vivo sin que el cliente tenga que cerrar y volver a abrir.
       if (!orderStatusOverlay.hidden) {
         renderOrderTimeline(status);
+      }
+
+      if (status === 'entregado') {
+        startDeliveredCountdown();
       }
 
       if (status === 'cancelado') {
@@ -1143,6 +1196,47 @@ function tickMyOrderButton(data) {
   if (orderStatusTimer) orderStatusTimer.textContent = formatted;
 }
 
+// --- Cuenta regresiva aparte tras la entrega ---
+// Independiente del cronómetro de cancelación: en cuanto el pedido pasa
+// a "entregado", el botón flotante se reinicia a 1:30 (sin importar
+// cuánto le quedaba al cronómetro de cancelar), y al llegar a cero el
+// botón "Mi pedido" desaparece y se cierra el panel de seguimiento si
+// estaba abierto. Es solo visual — no afecta nada más del pedido.
+const DELIVERED_COUNTDOWN_MS = 90 * 1000;
+let deliveredCountdownEndAt = null;
+
+function startDeliveredCountdown() {
+  deliveredCountdownEndAt = Date.now() + DELIVERED_COUNTDOWN_MS;
+
+  const btn = document.getElementById('my-order-btn');
+  btn.hidden = false;
+
+  if (myOrderTickInterval) clearInterval(myOrderTickInterval);
+  tickDeliveredCountdown();
+  myOrderTickInterval = setInterval(tickDeliveredCountdown, 1000);
+}
+
+function tickDeliveredCountdown() {
+  const btn = document.getElementById('my-order-btn');
+  const timeLeft = deliveredCountdownEndAt - Date.now();
+
+  if (timeLeft <= 0) {
+    btn.hidden = true;
+    clearInterval(myOrderTickInterval);
+    if (!orderStatusOverlay.hidden) {
+      orderStatusOverlay.hidden = true;
+      unlockBodyScroll();
+    }
+    return;
+  }
+
+  const mins = Math.floor(timeLeft / 60000);
+  const secs = Math.floor((timeLeft % 60000) / 1000);
+  const formatted = `${mins}:${secs.toString().padStart(2, '0')}`;
+  document.getElementById('my-order-timer').textContent = formatted;
+  if (orderStatusTimer) orderStatusTimer.textContent = formatted;
+}
+
 document.getElementById('my-order-btn').addEventListener('click', () => {
   const data = getMyOrder();
   if (!data) return;
@@ -1156,7 +1250,7 @@ function openOrderStatusPanel(data) {
   renderOrderTimeline(myOrderLastKnownStatus || 'pendiente');
 }
 
-function renderOrderTimeline(status) {
+function renderOrderTimeline(status, readOnly) {
   if (status === 'cancelado') {
     orderTimeline.hidden = true;
     orderCancelledState.hidden = false;
@@ -1175,20 +1269,24 @@ function renderOrderTimeline(status) {
     if (stepIndex === currentIndex) step.classList.add('is-current');
   });
 
-  // Una vez entregado, ya no aplica cancelar.
-  orderStatusCancelSection.hidden = status === 'entregado';
+  // Una vez entregado, ya no aplica cancelar. Tampoco aplica en modo
+  // de solo lectura (rastreo por código), donde nunca se puede cancelar.
+  orderStatusCancelSection.hidden = readOnly || status === 'entregado';
 }
 
-document.getElementById('order-status-close').addEventListener('click', () => {
+function closeOrderStatusPanel() {
   if (orderStatusOverlay.hidden) return;
   orderStatusOverlay.hidden = true;
   unlockBodyScroll();
-});
-orderStatusOverlay.addEventListener('click', (e) => {
-  if (e.target === orderStatusOverlay && !orderStatusOverlay.hidden) {
-    orderStatusOverlay.hidden = true;
-    unlockBodyScroll();
+  if (trackedOrderUnsubscribe) {
+    trackedOrderUnsubscribe();
+    trackedOrderUnsubscribe = null;
   }
+}
+
+document.getElementById('order-status-close').addEventListener('click', closeOrderStatusPanel);
+orderStatusOverlay.addEventListener('click', (e) => {
+  if (e.target === orderStatusOverlay) closeOrderStatusPanel();
 });
 
 document.getElementById('order-status-cancel-btn').addEventListener('click', () => {
@@ -1196,6 +1294,103 @@ document.getElementById('order-status-cancel-btn').addEventListener('click', () 
   if (!data) return;
   openCancelConfirm(data);
 });
+
+// ============================================================
+// RASTREAR PEDIDO POR CÓDIGO
+// Botón del header: si ya hay un pedido activo en este navegador
+// (localStorage, dentro de los 10 minutos), abre directo el panel
+// de seguimiento normal. Si no, abre el formulario para escribir el
+// código de 4 caracteres que se le dio al cliente al confirmar.
+// El rastreo por código siempre es de solo lectura (sin botón de
+// cancelar) y solo funciona hasta 2 horas después de que el pedido
+// fue entregado o cancelado — después de eso, deja de encontrarse.
+// ============================================================
+
+const DELIVERED_LOOKUP_GRACE_MS = 2 * 60 * 60 * 1000; // 2 horas
+const trackOrderOverlay = document.getElementById('track-order-overlay');
+const trackOrderCodeInput = document.getElementById('track-order-code');
+const trackOrderError = document.getElementById('track-order-error');
+
+document.getElementById('track-order-toggle').addEventListener('click', () => {
+  const data = getMyOrder();
+  if (data) {
+    openOrderStatusPanel(data);
+    return;
+  }
+  trackOrderCodeInput.value = '';
+  trackOrderError.hidden = true;
+  trackOrderOverlay.hidden = false;
+  lockBodyScroll();
+});
+
+document.getElementById('track-order-close').addEventListener('click', () => {
+  trackOrderOverlay.hidden = true;
+  unlockBodyScroll();
+});
+trackOrderOverlay.addEventListener('click', (e) => {
+  if (e.target === trackOrderOverlay) {
+    trackOrderOverlay.hidden = true;
+    unlockBodyScroll();
+  }
+});
+
+trackOrderCodeInput.addEventListener('input', () => {
+  trackOrderCodeInput.value = trackOrderCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+document.getElementById('track-order-submit').addEventListener('click', async () => {
+  const code = trackOrderCodeInput.value.trim();
+  trackOrderError.hidden = true;
+
+  if (code.length !== 4) {
+    trackOrderError.textContent = 'Escribe el código de 4 caracteres completo.';
+    trackOrderError.hidden = false;
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection('orders').where('orderCode', '==', code).limit(1).get();
+    if (snapshot.empty) {
+      trackOrderError.textContent = 'No encontramos ningún pedido con ese código.';
+      trackOrderError.hidden = false;
+      return;
+    }
+
+    const doc = snapshot.docs[0];
+    const order = doc.data();
+
+    // Si ya pasó la ventana de gracia tras entregado/cancelado, lo
+    // tratamos como "ya no encontrado" — el código deja de servir.
+    if ((order.status === 'entregado' || order.status === 'cancelado') && order.updatedAt) {
+      const updatedAt = order.updatedAt.toDate ? order.updatedAt.toDate().getTime() : 0;
+      if (Date.now() - updatedAt > DELIVERED_LOOKUP_GRACE_MS) {
+        trackOrderError.textContent = 'Ese código ya no está disponible.';
+        trackOrderError.hidden = false;
+        return;
+      }
+    }
+
+    trackOrderOverlay.hidden = true;
+    openTrackedOrderPanel(doc.id);
+  } catch (err) {
+    console.error('Error buscando el pedido:', err);
+    trackOrderError.textContent = 'No se pudo buscar el pedido. Intenta de nuevo.';
+    trackOrderError.hidden = false;
+  }
+});
+
+function openTrackedOrderPanel(orderId) {
+  if (trackedOrderUnsubscribe) trackedOrderUnsubscribe();
+
+  orderStatusOverlay.hidden = false;
+  lockBodyScroll();
+  orderStatusCancelSection.hidden = true; // nunca se puede cancelar desde aquí
+
+  trackedOrderUnsubscribe = db.collection('orders').doc(orderId).onSnapshot((doc) => {
+    if (!doc.exists) return;
+    renderOrderTimeline(doc.data().status, true);
+  });
+}
 
 // --- Confirmación de cancelación ---
 const cancelConfirmOverlay = document.getElementById('cancel-confirm-overlay');
@@ -1232,7 +1427,10 @@ document.getElementById('cancel-confirm-yes').addEventListener('click', async ()
     // listener en tiempo real (watchMyOrderStatus) muestre el mensaje
     // correcto y no el de "el negocio canceló tu pedido".
     cancelledByMe = true;
-    await db.collection('orders').doc(data.orderId).update({ status: 'cancelado' });
+    await db.collection('orders').doc(data.orderId).update({
+      status: 'cancelado',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
   } catch (err) {
     console.error('No se pudo cancelar el pedido:', err);
     cancelledByMe = false;
@@ -1253,20 +1451,27 @@ const myOrdersList = document.getElementById('my-orders-list');
 const myOrdersEmpty = document.getElementById('my-orders-empty');
 let myOrdersUnsubscribe = null;
 
-document.getElementById('my-orders-toggle').addEventListener('click', () => {
-  const saved = getSavedCustomerProfile();
-  if (!saved || !saved.phone) {
-    if (window.showToast) {
-      showToast({
-        title: 'Todavía no tienes pedidos',
-        message: 'Haz tu primer pedido y vas a poder verlo aquí.',
-        type: 'info',
-      });
+// El botón "Mis pedidos" se quitó del header por pedido del negocio,
+// pero dejamos toda la lógica de "Mis pedidos" intacta (panel, listener
+// de Firestore, etc.) por si se reactiva desde otro lugar más adelante.
+// Esta comprobación evita que el script se rompa si el botón no existe.
+const myOrdersToggleBtn = document.getElementById('my-orders-toggle');
+if (myOrdersToggleBtn) {
+  myOrdersToggleBtn.addEventListener('click', () => {
+    const saved = getSavedCustomerProfile();
+    if (!saved || !saved.phone) {
+      if (window.showToast) {
+        showToast({
+          title: 'Todavía no tienes pedidos',
+          message: 'Haz tu primer pedido y vas a poder verlo aquí.',
+          type: 'info',
+        });
+      }
+      return;
     }
-    return;
-  }
-  openMyOrders(saved.phone);
-});
+    openMyOrders(saved.phone);
+  });
+}
 
 document.getElementById('my-orders-close').addEventListener('click', () => {
   if (myOrdersOverlay.hidden) return;

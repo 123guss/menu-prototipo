@@ -184,6 +184,19 @@ img { display: block; max-width: 100%; }
 }
 .my-orders-toggle:hover { background: var(--cream-deep); color: var(--coffee); }
 
+.track-order-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--coffee-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.track-order-toggle:hover { background: var(--cream-deep); color: var(--coffee); }
+
 .contact-toggle {
   width: 38px;
   height: 38px;
@@ -269,7 +282,7 @@ img { display: block; max-width: 100%; }
 }
 
 @media (max-width: 859px) {
-  .hero-visual { aspect-ratio: 16 / 10; order: -1; }
+  .hero-visual { aspect-ratio: 16 / 10; }
 }
 
 .hero-content {
@@ -374,8 +387,13 @@ img { display: block; max-width: 100%; }
   align-items: center;
 }
 
+.chef-content {
+  order: -1;
+}
+
 @media (min-width: 860px) {
   .chef-grid { grid-template-columns: 0.9fr 1.1fr; }
+  .chef-content { order: 0; }
 }
 
 .chef-visual {
@@ -1619,6 +1637,66 @@ img { display: block; max-width: 100%; }
   transition: background 0.15s ease;
 }
 .order-status-cancel-btn:hover { background: rgba(181, 69, 63, 0.08); }
+
+/* ===================== RASTREAR PEDIDO POR CÓDIGO ===================== */
+.track-order-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.track-order-prompt {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--coffee);
+  margin: 0 0 6px;
+}
+
+.track-order-hint {
+  font-size: 0.84rem;
+  color: var(--coffee-soft);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.track-order-input {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line-strong);
+  background: var(--card);
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--coffee);
+  margin-bottom: 16px;
+}
+.track-order-input:focus { border-color: var(--paprika); outline: none; }
+.track-order-input::placeholder { letter-spacing: 0.15em; color: var(--coffee-faint); opacity: 0.5; }
+
+.track-order-submit {
+  width: 100%;
+  padding: 14px;
+  border-radius: 100px;
+  background: var(--paprika);
+  color: #1C140E;
+  font-weight: 700;
+  font-size: 0.92rem;
+  transition: background 0.2s ease;
+}
+.track-order-submit:hover { background: var(--paprika-deep); }
+
+.track-order-error {
+  font-size: 0.82rem;
+  color: #E0716A;
+  text-align: center;
+  margin: 14px 0 0;
+}
+.track-order-error[hidden] { display: none; }
 
 /* ===================== MIS PEDIDOS ===================== */
 .my-orders-list {

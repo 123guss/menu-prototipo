@@ -249,7 +249,10 @@ function renderOrdersColumn(status, orders, flashIds) {
 
   listEl.querySelectorAll('.order-action-advance').forEach(btn => {
     btn.addEventListener('click', () => {
-      db.collection('orders').doc(btn.dataset.id).update({ status: btn.dataset.next });
+      db.collection('orders').doc(btn.dataset.id).update({
+        status: btn.dataset.next,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
     });
   });
 
@@ -905,7 +908,10 @@ document.getElementById('order-cancel-confirm-yes').addEventListener('click', as
   if (!pendingOrderCancelId) return;
   try {
     cancelledByCashier.add(pendingOrderCancelId);
-    await db.collection('orders').doc(pendingOrderCancelId).update({ status: 'cancelado' });
+    await db.collection('orders').doc(pendingOrderCancelId).update({
+      status: 'cancelado',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
   } catch (err) {
     console.error('Error cancelando pedido:', err);
     cancelledByCashier.delete(pendingOrderCancelId);

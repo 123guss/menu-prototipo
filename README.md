@@ -224,6 +224,34 @@ entregado, tanto la línea de tiempo (si el panel está abierto) como una
 notificación toast se actualizan al instante — sin importar quién hizo el
 cambio, y sin que el cliente tenga que cerrar y volver a abrir nada.
 
+## Rastrear pedido por código
+
+Cada pedido recibe un código corto de 4 caracteres (ej. `A1B2`) al confirmarse,
+que se le muestra al cliente en el toast de "Pedido enviado". Sirve para
+recuperar el seguimiento si el cliente cierra el navegador, cambia de
+dispositivo, o pierde el `localStorage` donde normalmente se recuerda "Mi
+pedido" — algo que el sistema anterior no podía resolver por sí solo.
+
+El ícono de lupa en el header ("Rastrear pedido") se comporta así:
+- Si el navegador todavía tiene un pedido activo en `localStorage` (dentro de
+  los 10 minutos), abre directo el panel de seguimiento normal.
+- Si no, abre un formulario que pide escribir el código de 4 caracteres.
+
+El rastreo por código **siempre es de solo lectura** (sin botón de cancelar,
+sin importar el estado del pedido) — cancelar solo existe en el flujo normal
+de "Mi pedido" dentro de los primeros 10 minutos. El código deja de funcionar
+**2 horas después** de que el pedido se marca entregado o cancelado (se
+calcula con el campo `updatedAt`, que el panel del cajero y la cancelación del
+cliente actualizan en cada cambio de estado) — después de esa ventana, buscar
+ese código da "ya no está disponible", aunque el documento del pedido sigue
+existiendo en Firestore para los registros del negocio.
+
+**Nota honesta sobre colisiones**: el código se genera al azar entre ~1 millón
+de combinaciones (4 caracteres, sin 0/O/1/I para evitar confusión visual). Para
+el volumen de pedidos de un negocio pequeño el riesgo de que dos pedidos
+activos compartan el mismo código es muy bajo, pero no es matemáticamente
+imposible — no hay una garantía de unicidad forzada a nivel de base de datos.
+
 ## "Mis pedidos"
 
 Al hacer su primer pedido, el cliente escribe su nombre y teléfono — se guarda
@@ -267,13 +295,14 @@ service cloud.firestore {
 
       // El cajero puede actualizar lo que sea.
       // Un cliente sin sesión SOLO puede cancelar su propio pedido:
-      // únicamente puede cambiar el campo "status" a "cancelado",
-      // y solo si el pedido todavía está "pendiente". No puede tocar
-      // el total, los items, ni marcarlo como entregado/en proceso.
+      // únicamente puede cambiar "status" (a "cancelado") y "updatedAt"
+      // (para que el código de rastreo expire 2 horas después), y solo
+      // si el pedido todavía está "pendiente". No puede tocar el total,
+      // los items, ni marcarlo como entregado/en proceso.
       allow update: if request.auth != null || (
         resource.data.status == 'pendiente' &&
         request.resource.data.status == 'cancelado' &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
       );
     }
   }
