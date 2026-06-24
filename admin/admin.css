@@ -828,7 +828,27 @@
   overflow: hidden;
   background: var(--cream);
   box-shadow: var(--shadow-card);
+  cursor: grab;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
+
+.admin-item.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.admin-grid-inner {
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  border-radius: var(--radius-md);
+}
+
+.admin-grid-inner.is-drop-target {
+  background: rgba(193, 68, 14, 0.06);
+  box-shadow: 0 0 0 2px dashed var(--paprika), inset 0 0 0 2px var(--paprika);
+  outline: 2px dashed var(--paprika);
+  outline-offset: 4px;
+}
+
 
 .admin-item-extras {
   font-size: 0.7rem;
@@ -935,18 +955,30 @@
   gap: 10px;
 }
 
-.confirm-cancel, .confirm-delete {
+.confirm-actions-stacked {
+  flex-direction: column;
+}
+
+.confirm-cancel, .confirm-delete, .confirm-move {
   flex: 1;
   padding: 12px;
   border-radius: 100px;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  text-align: center;
 }
 
 .confirm-cancel {
   background: var(--cream);
   color: var(--coffee-soft);
 }
+
+.confirm-move {
+  background: var(--mustard);
+  color: var(--coffee);
+}
+.confirm-move:hover { background: var(--mustard-deep); }
+.confirm-move[hidden] { display: none; }
 
 .confirm-delete {
   background: #B5453F;

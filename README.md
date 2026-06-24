@@ -64,10 +64,15 @@ categoría todavía"). Los platillos reales se suben desde `/admin/`.
 
 - **Categorías**: viven en su propia colección (`categories`), con un contador de uso
   (`useCount`) que sube cada vez que se publica un platillo en esa categoría — así
-  las más usadas aparecen primero al elegir categoría para un platillo nuevo. El
-  admin puede crear categorías manualmente o eliminarlas; si una categoría eliminada
-  todavía tiene platillos, estos se reasignan automáticamente a "Sin categoría" (no
-  se borran ni quedan bloqueados).
+  las más usadas aparecen primero al elegir categoría para un platillo nuevo. Al
+  eliminar una categoría que tiene platillos, el cajero elige explícitamente qué
+  hacer: **mover** esos platillos a "Sin categoría", o **borrar** la categoría junto
+  con todos sus platillos (irreversible). "Sin categoría" es un cajón interno —
+  se ve y se administra desde el panel del cajero, pero nunca aparece como pestaña
+  ni etiqueta visible en el sitio del cliente.
+- **Arrastrar y soltar**: en "Menú actual" del panel, cualquier platillo se puede
+  arrastrar hacia otra sección de categoría para reasignarlo al instante (sin abrir
+  ningún formulario). Funciona con la API nativa de drag-and-drop del navegador.
 - **Extras**: cada platillo puede tener una lista de extras opcionales con su propio
   precio (ej. "Bebida +Q12"). El cliente los marca con checkbox al personalizar el
   platillo, y el precio se suma al total de esa línea.

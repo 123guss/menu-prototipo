@@ -436,10 +436,21 @@ async function openCategoryDelete(id, name) {
   const countSnapshot = await db.collection('dishes').where('category', '==', name).get();
   const affected = countSnapshot.size;
 
+  const moveBtn = document.getElementById('category-confirm-move');
+  const deleteBtn = document.getElementById('category-confirm-delete');
+
   document.getElementById('category-confirm-text').textContent = `¿Eliminar la categoría "${name}"?`;
-  document.getElementById('category-confirm-sub').textContent = affected > 0
-    ? `${affected} platillo${affected === 1 ? '' : 's'} se moverá${affected === 1 ? '' : 'n'} a "${UNCATEGORIZED}".`
-    : 'No tiene platillos asignados.';
+
+  if (affected > 0) {
+    document.getElementById('category-confirm-sub').textContent =
+      `Tiene ${affected} platillo${affected === 1 ? '' : 's'}. Elige qué hacer con ${affected === 1 ? 'él' : 'ellos'}.`;
+    moveBtn.hidden = false;
+    deleteBtn.textContent = `Eliminar categoría y sus ${affected} platillo${affected === 1 ? '' : 's'}`;
+  } else {
+    document.getElementById('category-confirm-sub').textContent = 'No tiene platillos asignados.';
+    moveBtn.hidden = true;
+    deleteBtn.textContent = 'Eliminar categoría';
+  }
 
   categoryConfirmOverlay.hidden = false;
 }
@@ -449,19 +460,39 @@ document.getElementById('category-confirm-cancel').addEventListener('click', () 
   pendingCategoryDelete = null;
 });
 
-document.getElementById('category-confirm-delete').addEventListener('click', async () => {
+// Opción 1: mover los platillos afectados a "Sin categoría" y borrar la categoría.
+document.getElementById('category-confirm-move').addEventListener('click', async () => {
   if (!pendingCategoryDelete) return;
   const { id, name } = pendingCategoryDelete;
 
   try {
-    // Reasignar platillos afectados a "Sin categoría"
     const affected = await db.collection('dishes').where('category', '==', name).get();
     const batch = db.batch();
     affected.forEach((doc) => {
       batch.update(doc.ref, { category: UNCATEGORIZED });
     });
     await batch.commit();
+    await db.collection('categories').doc(id).delete();
+  } catch (err) {
+    console.error('Error eliminando categoría:', err);
+  }
+  categoryConfirmOverlay.hidden = true;
+  pendingCategoryDelete = null;
+});
 
+// Opción 2: borrar la categoría Y todos sus platillos (incluyendo sus fotos en Cloudinary
+// quedan huérfanas — Cloudinary no se limpia desde el cliente, ver README).
+document.getElementById('category-confirm-delete').addEventListener('click', async () => {
+  if (!pendingCategoryDelete) return;
+  const { id, name } = pendingCategoryDelete;
+
+  try {
+    const affected = await db.collection('dishes').where('category', '==', name).get();
+    const batch = db.batch();
+    affected.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
     await db.collection('categories').doc(id).delete();
   } catch (err) {
     console.error('Error eliminando categoría:', err);
@@ -515,32 +546,45 @@ const imageInput = document.getElementById('image-input');
 const photoGalleryGrid = document.getElementById('photo-gallery-grid');
 const photoGalleryAdd = document.getElementById('photo-gallery-add');
 const photoGalleryCount = document.getElementById('photo-gallery-count');
-let selectedFiles = [];
+let selectedFiles = []; // [{ uid, file }] — uid estable, no depende de la posición
+
+let photoUidCounter = 0;
+function nextPhotoUid() {
+  photoUidCounter += 1;
+  return `photo-${photoUidCounter}`;
+}
 
 function renderPhotoGallery() {
   photoGalleryGrid.querySelectorAll('.photo-gallery-item').forEach((el) => el.remove());
   photoGalleryCount.textContent = `${selectedFiles.length} de ${MAX_PHOTOS} fotos`;
   photoGalleryAdd.hidden = selectedFiles.length >= MAX_PHOTOS;
 
-  selectedFiles.forEach((file, index) => {
+  selectedFiles.forEach(({ uid, file }, index) => {
     const item = document.createElement('div');
     item.className = 'photo-gallery-item';
+    item.dataset.uid = uid;
+    photoGalleryGrid.insertBefore(item, photoGalleryAdd);
+
     const reader = new FileReader();
     reader.onload = (e) => {
+      // Si para cuando termina de leerse el archivo la foto ya se quitó
+      // (el usuario le dio click a "quitar" muy rápido), no la dibujamos.
+      if (!selectedFiles.some((f) => f.uid === uid)) return;
+
+      const isFirst = selectedFiles[0] && selectedFiles[0].uid === uid;
       item.innerHTML = `
         <img src="${e.target.result}" alt="">
-        <button type="button" class="photo-gallery-remove" data-index="${index}" aria-label="Quitar foto">
+        <button type="button" class="photo-gallery-remove" data-uid="${uid}" aria-label="Quitar foto">
           <svg viewBox="0 0 20 20" width="12" height="12" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        ${index === 0 ? '<span class="photo-gallery-main">Principal</span>' : ''}
+        ${isFirst ? '<span class="photo-gallery-main">Principal</span>' : ''}
       `;
       item.querySelector('.photo-gallery-remove').addEventListener('click', () => {
-        selectedFiles.splice(index, 1);
+        selectedFiles = selectedFiles.filter((f) => f.uid !== uid);
         renderPhotoGallery();
       });
     };
     reader.readAsDataURL(file);
-    photoGalleryGrid.insertBefore(item, photoGalleryAdd);
   });
 }
 
@@ -550,7 +594,8 @@ imageInput.addEventListener('change', () => {
   if (newFiles.length > room) {
     showStatus(`Solo puedes agregar ${room} foto${room === 1 ? '' : 's'} más (máximo ${MAX_PHOTOS}).`, 'error');
   }
-  selectedFiles = selectedFiles.concat(newFiles.slice(0, room));
+  const toAdd = newFiles.slice(0, room).map((file) => ({ uid: nextPhotoUid(), file }));
+  selectedFiles = selectedFiles.concat(toAdd);
   imageInput.value = '';
   renderPhotoGallery();
 });
@@ -591,7 +636,7 @@ uploadForm.addEventListener('submit', async (e) => {
 
   try {
     const imageUrls = [];
-    for (const file of selectedFiles) {
+    for (const { file } of selectedFiles) {
       imageUrls.push(await uploadToCloudinary(file));
     }
     const extras = getExtrasFromForm();
@@ -697,7 +742,7 @@ function renderAdminDishes() {
     section.className = 'admin-category-group';
     section.innerHTML = `
       <h3 class="admin-category-heading">${escapeHtmlAdmin(category)} <span class="admin-category-heading-count">${dishes.length}</span></h3>
-      <div class="admin-grid-inner"></div>
+      <div class="admin-grid-inner" data-category="${escapeHtmlAdmin(category)}"></div>
     `;
     const inner = section.querySelector('.admin-grid-inner');
 
@@ -707,6 +752,8 @@ function renderAdminDishes() {
       dishes.forEach((d) => {
         const item = document.createElement('div');
         item.className = 'admin-item';
+        item.draggable = true;
+        item.dataset.dishId = d.id;
         const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
         item.innerHTML = `
           <button class="admin-item-delete" data-id="${d.id}" aria-label="Eliminar">
@@ -730,7 +777,59 @@ function renderAdminDishes() {
   });
 
   adminGrid.querySelectorAll('.admin-item-delete').forEach((btn) => {
-    btn.addEventListener('click', () => openConfirmDelete(btn.dataset.id));
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openConfirmDelete(btn.dataset.id);
+    });
+  });
+
+  setupDishDragAndDrop();
+}
+
+// --- Arrastrar y soltar: mover un platillo a otra categoría ---
+let draggedDishId = null;
+
+function setupDishDragAndDrop() {
+  adminGrid.querySelectorAll('.admin-item').forEach((item) => {
+    item.addEventListener('dragstart', () => {
+      draggedDishId = item.dataset.dishId;
+      item.classList.add('is-dragging');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('is-dragging');
+      draggedDishId = null;
+      adminGrid.querySelectorAll('.admin-grid-inner.is-drop-target').forEach((el) => {
+        el.classList.remove('is-drop-target');
+      });
+    });
+  });
+
+  adminGrid.querySelectorAll('.admin-grid-inner').forEach((zone) => {
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.classList.add('is-drop-target');
+    });
+    zone.addEventListener('dragleave', () => {
+      zone.classList.remove('is-drop-target');
+    });
+    zone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      zone.classList.remove('is-drop-target');
+      if (!draggedDishId) return;
+
+      const newCategory = zone.dataset.category;
+      const dish = lastDishesSnapshot.find((d) => d.id === draggedDishId);
+      if (!dish || dish.category === newCategory) return;
+
+      try {
+        await db.collection('dishes').doc(draggedDishId).update({ category: newCategory });
+        if (newCategory !== UNCATEGORIZED) {
+          await touchCategory(newCategory);
+        }
+      } catch (err) {
+        console.error('No se pudo mover el platillo:', err);
+      }
+    });
   });
 }
 

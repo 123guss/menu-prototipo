@@ -184,6 +184,7 @@
           <section class="admin-card admin-card-current-menu">
             <div class="admin-card-header">
               <h2 class="admin-card-title">Menú actual</h2>
+              <p class="admin-card-hint">Arrastra un platillo a otra categoría para moverlo.</p>
             </div>
             <div class="admin-grid" id="admin-grid"></div>
             <p class="admin-empty" id="admin-empty" hidden>Aún no has agregado ningún platillo.</p>
@@ -212,9 +213,10 @@
   <div class="confirm-card">
     <p class="confirm-text" id="category-confirm-text">¿Eliminar esta categoría?</p>
     <p class="confirm-sub" id="category-confirm-sub"></p>
-    <div class="confirm-actions">
+    <div class="confirm-actions confirm-actions-stacked" id="category-confirm-actions">
       <button class="confirm-cancel" id="category-confirm-cancel">Cancelar</button>
-      <button class="confirm-delete" id="category-confirm-delete">Eliminar</button>
+      <button class="confirm-move" id="category-confirm-move" hidden>Mover platillos a "Sin categoría"</button>
+      <button class="confirm-delete" id="category-confirm-delete">Eliminar categoría</button>
     </div>
   </div>
 </div>

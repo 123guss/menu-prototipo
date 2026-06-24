@@ -107,12 +107,17 @@ function loadCategoryNames() {
   }
 }
 
+const UNCATEGORIZED = 'Sin categoría';
+
 function renderCategories() {
   // Mostramos todas las categorías conocidas del negocio (aunque estén
   // vacías), más cualquier categoría que solo exista en algún platillo
   // (por compatibilidad si la colección de categorías no está sincronizada).
+  // "Sin categoría" es un cajón interno del panel del cajero — el cliente
+  // nunca debe verlo como una categoría real del menú.
   const fromDishes = allDishes.map(d => d.category).filter(Boolean);
-  const cats = [...new Set([...allCategoryNames, ...fromDishes])];
+  const cats = [...new Set([...allCategoryNames, ...fromDishes])]
+    .filter((cat) => cat !== UNCATEGORIZED);
 
   catScroll.querySelectorAll('.cat-pill:not([data-cat="todos"])').forEach(el => el.remove());
 
@@ -156,7 +161,7 @@ function renderMenu() {
     card.innerHTML = `
       <div class="dish-img">
         <img src="${photos[0] || ''}" alt="${escapeHtml(dish.name)}" loading="lazy">
-        ${dish.category ? `<span class="dish-cat-tag">${escapeHtml(dish.category)}</span>` : ''}
+        ${dish.category && dish.category !== UNCATEGORIZED ? `<span class="dish-cat-tag">${escapeHtml(dish.category)}</span>` : ''}
         ${photos.length > 1 ? `<span class="dish-photo-count">${photos.length} fotos</span>` : ''}
       </div>
       <div class="dish-body">
