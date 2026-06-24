@@ -70,7 +70,7 @@ body {
   margin: 0;
   background:
     linear-gradient(rgba(28, 20, 14, 0.35), rgba(28, 20, 14, 0.35)),
-    var(--cream) url('assets/wood-bg.jpg') center / cover fixed no-repeat;
+    var(--cream) url('../assets/wood-bg.jpg') center / cover fixed no-repeat;
   color: var(--coffee);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -254,8 +254,9 @@ img { display: block; max-width: 100%; }
   border-radius: var(--radius-md);
   overflow: hidden;
   background:
-    radial-gradient(circle at 65% 30%, rgba(193, 89, 46, 0.14), transparent 50%),
-    linear-gradient(160deg, #2B2017 0%, #1C140E 100%);
+    radial-gradient(circle at 65% 30%, rgba(193, 89, 46, 0.16), transparent 50%),
+    linear-gradient(rgba(28, 20, 14, 0.45), rgba(28, 20, 14, 0.45)),
+    url('../assets/wood-bg.jpg') center / cover no-repeat;
   border: 1px solid var(--line);
 }
 
