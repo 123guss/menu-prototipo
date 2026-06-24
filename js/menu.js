@@ -240,6 +240,7 @@ function renderMenu() {
       <div class="dish-body">
         <div class="dish-info">
           <h3 class="dish-name">${escapeHtml(dish.name)}</h3>
+          ${dish.description ? `<p class="dish-desc">${escapeHtml(dish.description)}</p>` : ''}
           <p class="dish-price">Q${Number(dish.price).toFixed(2)}</p>
         </div>
         <button class="dish-add ${inCart ? 'is-in-cart' : ''}" data-id="${dish.id}" aria-label="Personalizar ${escapeHtml(dish.name)}">
