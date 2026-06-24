@@ -1,13 +1,16 @@
 /* ===================================================================
    [Nombre de tu restaurante] — Panel de cajero
-   Tema claro y formal: blanco con acentos beige, esquinas casi
-   rectas, sin negro ni superficies oscuras — pensado para verse
-   serio y administrativo, distinto del tono cálido del sitio público
-   pero parte de la misma marca (mismos colores de acento).
+   Misma identidad cálida/rústica que el sitio público: madera
+   oscura de fondo, terracota como acento principal, dorado de
+   farol como secundario — una sola marca en todo el sistema.
 =================================================================== */
 
-.admin-body { background: var(--cream-deep); min-height: 100vh; transition: background-color 0.25s ease; }
-.admin-body * { transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+.admin-body {
+  background:
+    linear-gradient(rgba(28, 20, 14, 0.6), rgba(28, 20, 14, 0.6)),
+    var(--cream-deep) url('../assets/wood-bg.jpg') center / cover fixed no-repeat;
+  min-height: 100vh;
+}
 
 /* ===================== LOGIN ===================== */
 .login-screen[hidden] { display: none; }
@@ -19,7 +22,7 @@
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 85% 8%, rgba(193, 68, 14, 0.10), transparent 45%),
+    radial-gradient(circle at 85% 8%, rgba(193, 89, 46, 0.10), transparent 45%),
     radial-gradient(circle at 8% 92%, rgba(79, 107, 69, 0.10), transparent 50%),
     var(--cream);
 }
@@ -275,8 +278,8 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.dot-pendiente { background: var(--paprika); box-shadow: 0 0 0 3px rgba(217, 123, 41, 0.25); }
-.dot-proceso { background: var(--mustard); box-shadow: 0 0 0 3px rgba(217, 123, 41, 0.2); }
+.dot-pendiente { background: var(--paprika); box-shadow: 0 0 0 3px rgba(193, 89, 46, 0.25); }
+.dot-proceso { background: var(--mustard); box-shadow: 0 0 0 3px rgba(193, 89, 46, 0.2); }
 .dot-entregado { background: #5FA858; box-shadow: 0 0 0 3px rgba(95, 168, 88, 0.2); }
 .dot-cancelado { background: #B5453F; box-shadow: 0 0 0 3px rgba(181, 69, 63, 0.2); }
 
@@ -332,7 +335,7 @@
 }
 @keyframes orderFlash {
   0%, 100% { box-shadow: none; }
-  50% { box-shadow: 0 0 0 3px rgba(193, 68, 14, 0.4); }
+  50% { box-shadow: 0 0 0 3px rgba(193, 89, 46, 0.4); }
 }
 
 .order-card-top {
@@ -509,7 +512,7 @@
 
 .photo-gallery-add {
   aspect-ratio: 1/1;
-  border: 2px dashed rgba(193, 68, 14, 0.35);
+  border: 2px dashed rgba(193, 89, 46, 0.35);
   border-radius: var(--radius-sm);
   background: var(--cream);
   display: flex;
@@ -845,7 +848,7 @@
 }
 
 .admin-grid-inner.is-drop-target {
-  background: rgba(193, 68, 14, 0.06);
+  background: rgba(193, 89, 46, 0.06);
   box-shadow: 0 0 0 2px dashed var(--paprika), inset 0 0 0 2px var(--paprika);
   outline: 2px dashed var(--paprika);
   outline-offset: 4px;
@@ -909,14 +912,14 @@
   height: 30px;
   border-radius: 50%;
   background: rgba(243,236,227,0.92);
-  color: #1A1714;
+  color: #2B2017;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-card);
   transition: background 0.15s ease, color 0.15s ease;
 }
-.admin-item-edit:hover { background: var(--paprika); color: #1A1714; }
+.admin-item-edit:hover { background: var(--paprika); color: #2B2017; }
 
 .admin-item-delete {
   position: static;

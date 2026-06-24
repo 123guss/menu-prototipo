@@ -1,40 +1,42 @@
 /* ===================================================================
    [Nombre de tu restaurante] — Sistema de diseño
-   Dirección: fine dining / lujo contemporáneo. Fondo oscuro y
-   dramático, acento ámbar tostado, tipografía serif con presencia.
-   Type: Fraunces (display) + Inter (UI/datos)
+   Dirección: cantina / colonial mexicana cálida. Ladrillo expuesto,
+   roble miel, terracota, luces de farol doradas. Fondo de madera
+   oscura (textura real, ver assets/wood-bg.jpg) con tarjetas apenas
+   más claras. Type: Fraunces (display) + Inter (UI/datos)
 =================================================================== */
 
 :root {
-  /* Fondo y superficies — oscuro, casi negro, con tarjetas apenas
-     más claras que el fondo (nunca blancas) */
-  --cream:        #0E0C0A;
-  --cream-deep:    #161310;
-  --card:          #1A1714;
+  /* Fondo y superficies — café oscuro tipo madera vieja, con tarjetas
+     apenas más claras que el fondo (nunca blancas) */
+  --cream:        #1C140E;
+  --cream-deep:    #241A12;
+  --card:          #2B2017;
 
-  /* Marca — ámbar tostado, el único color saturado del sistema */
-  --paprika:       #D97B29;
-  --paprika-deep:  #B5631C;
-  --mustard:       #D97B29;
-  --mustard-deep:  #B5631C;
-  --basil:         #5FA858;
-  --basil-deep:    #3D7A38;
+  /* Marca — terracota/ladrillo como acento principal, dorado de farol
+     como secundario */
+  --paprika:       #C1592E;
+  --paprika-deep:  #9C461F;
+  --mustard:       #E0A23A;
+  --mustard-deep:  #B9802A;
+  --basil:         #6B8A4E;
+  --basil-deep:    #4A6536;
 
-  /* Texto — crema/blanco cálido sobre fondo oscuro */
-  --coffee:        #F3ECE3;
-  --coffee-soft:   #B8AFA3;
-  --coffee-faint:  #7D7468;
+  /* Texto — crema cálido sobre fondo de madera oscura */
+  --coffee:        #F2E6D8;
+  --coffee-soft:   #C7B49E;
+  --coffee-faint:  #8C7A65;
 
-  /* Panel del cajero — mismo lenguaje oscuro que el cliente, una
+  /* Panel del cajero — mismo lenguaje cálido que el cliente, una
      sola identidad visual en todo el sistema. */
-  --kitchen-bg:     #0E0C0A;
-  --kitchen-surface: #1A1714;
-  --kitchen-line:   rgba(243, 236, 227, 0.10);
-  --kitchen-text:    #F3ECE3;
-  --kitchen-text-soft: #B8AFA3;
+  --kitchen-bg:     #1C140E;
+  --kitchen-surface: #2B2017;
+  --kitchen-line:   rgba(242, 230, 216, 0.10);
+  --kitchen-text:    #F2E6D8;
+  --kitchen-text-soft: #C7B49E;
 
-  --line:          rgba(243, 236, 227, 0.08);
-  --line-strong:   rgba(243, 236, 227, 0.14);
+  --line:          rgba(242, 230, 216, 0.08);
+  --line-strong:   rgba(242, 230, 216, 0.14);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', sans-serif;
@@ -43,9 +45,9 @@
   --radius-md: 4px;
   --radius-sm: 3px;
 
-  --shadow-card: 0 1px 0 rgba(243, 236, 227, 0.04), 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lift: 0 24px 56px rgba(0, 0, 0, 0.6);
-  --shadow-pop: 0 8px 24px rgba(217, 123, 41, 0.25);
+  --shadow-card: 0 1px 0 rgba(242, 230, 216, 0.04), 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lift: 0 24px 56px rgba(0, 0, 0, 0.65);
+  --shadow-pop: 0 8px 24px rgba(193, 89, 46, 0.3);
 }
 
 * { box-sizing: border-box; }
@@ -58,7 +60,9 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background: var(--cream);
+  background:
+    linear-gradient(rgba(28, 20, 14, 0.55), rgba(28, 20, 14, 0.55)),
+    var(--cream) url('assets/wood-bg.jpg') center / cover fixed no-repeat;
   color: var(--coffee);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -112,7 +116,7 @@ img { display: block; max-width: 100%; }
   height: 38px;
   background: var(--paprika);
   border-radius: 11px;
-  color: #0E0C0A;
+  color: #1C140E;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -242,8 +246,8 @@ img { display: block; max-width: 100%; }
   border-radius: var(--radius-md);
   overflow: hidden;
   background:
-    radial-gradient(circle at 65% 30%, rgba(217, 123, 41, 0.14), transparent 50%),
-    linear-gradient(160deg, #1A1714 0%, #0E0C0A 100%);
+    radial-gradient(circle at 65% 30%, rgba(193, 89, 46, 0.14), transparent 50%),
+    linear-gradient(160deg, #2B2017 0%, #1C140E 100%);
   border: 1px solid var(--line);
 }
 
@@ -302,7 +306,7 @@ img { display: block; max-width: 100%; }
   align-items: center;
   gap: 8px;
   background: var(--paprika);
-  color: #0E0C0A;
+  color: #1C140E;
   padding: 14px 30px;
   border-radius: 100px;
   font-weight: 600;
@@ -350,8 +354,8 @@ img { display: block; max-width: 100%; }
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background:
-    radial-gradient(circle at 30% 70%, rgba(217, 123, 41, 0.10), transparent 50%),
-    linear-gradient(160deg, #1A1714 0%, #0E0C0A 100%);
+    radial-gradient(circle at 30% 70%, rgba(193, 89, 46, 0.10), transparent 50%),
+    linear-gradient(160deg, #2B2017 0%, #1C140E 100%);
 }
 
 .chef-title {
@@ -476,7 +480,7 @@ img { display: block; max-width: 100%; }
   left: 12px;
   background: rgba(14, 12, 10, 0.82);
   backdrop-filter: blur(4px);
-  color: #F3ECE3;
+  color: #F2E6D8;
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -491,7 +495,7 @@ img { display: block; max-width: 100%; }
   right: 10px;
   background: rgba(14, 12, 10, 0.78);
   backdrop-filter: blur(4px);
-  color: #F3ECE3;
+  color: #F2E6D8;
   font-size: 0.66rem;
   font-weight: 600;
   padding: 4px 9px;
@@ -905,7 +909,7 @@ img { display: block; max-width: 100%; }
   height: 34px;
   border-radius: 10px;
   background: rgba(243, 236, 227, 0.92);
-  color: #1A1714;
+  color: #2B2017;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -946,7 +950,7 @@ img { display: block; max-width: 100%; }
   height: 34px;
   border-radius: 50%;
   background: rgba(243, 236, 227, 0.92);
-  color: #1A1714;
+  color: #2B2017;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -976,7 +980,7 @@ img { display: block; max-width: 100%; }
   background: rgba(255, 255, 255, 0.55);
   transition: background 0.2s ease, transform 0.2s ease;
 }
-.dish-carousel-dot.is-active { background: #F3ECE3; transform: scale(1.3); }
+.dish-carousel-dot.is-active { background: #F2E6D8; transform: scale(1.3); }
 
 .dish-modal-body { padding: 20px 22px 24px; }
 
@@ -1140,7 +1144,7 @@ img { display: block; max-width: 100%; }
 
 .toast {
   position: relative;
-  background: var(--card, #1A1714);
+  background: var(--card, #2B2017);
   border-radius: 14px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
   padding: 14px 40px 16px 14px;
@@ -1169,14 +1173,14 @@ img { display: block; max-width: 100%; }
 
 .toast-success .toast-icon { background: rgba(95, 168, 88, 0.16); color: #3D6B33; }
 .toast-error .toast-icon { background: rgba(181, 69, 63, 0.14); color: #B5453F; }
-.toast-info .toast-icon { background: rgba(193, 68, 14, 0.12); color: var(--paprika, #D97B29); }
+.toast-info .toast-icon { background: rgba(193, 89, 46, 0.12); color: var(--paprika, #C1592E); }
 
 .toast-body { flex: 1; min-width: 0; }
 
 .toast-title {
   font-weight: 700;
   font-size: 0.88rem;
-  color: var(--coffee, #F3ECE3);
+  color: var(--coffee, #F2E6D8);
   margin: 0 0 2px;
 }
 
@@ -1200,7 +1204,7 @@ img { display: block; max-width: 100%; }
   justify-content: center;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.toast-close:hover { background: var(--cream-deep, #161310); color: var(--coffee, #F3ECE3); }
+.toast-close:hover { background: var(--cream-deep, #241A12); color: var(--coffee, #F2E6D8); }
 
 .toast-bar {
   position: absolute;
@@ -1215,7 +1219,7 @@ img { display: block; max-width: 100%; }
   height: 100%;
   width: 100%;
   transform-origin: left;
-  background: var(--paprika, #D97B29);
+  background: var(--paprika, #C1592E);
   animation: toastDeplete linear forwards;
 }
 .toast-success .toast-bar-fill { background: #3D6B33; }
@@ -1467,13 +1471,13 @@ img { display: block; max-width: 100%; }
 .order-timeline-step.is-current .order-timeline-dot {
   background: var(--paprika);
   border-color: var(--paprika);
-  box-shadow: 0 0 0 4px rgba(193, 68, 14, 0.18);
+  box-shadow: 0 0 0 4px rgba(193, 89, 46, 0.18);
   animation: timelinePulse 1.6s ease-in-out infinite;
 }
 
 @keyframes timelinePulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(193, 68, 14, 0.18); }
-  50% { box-shadow: 0 0 0 7px rgba(193, 68, 14, 0.1); }
+  0%, 100% { box-shadow: 0 0 0 4px rgba(193, 89, 46, 0.18); }
+  50% { box-shadow: 0 0 0 7px rgba(193, 89, 46, 0.1); }
 }
 
 .order-timeline-title {
@@ -1573,7 +1577,7 @@ img { display: block; max-width: 100%; }
   border-radius: 100px;
 }
 
-.my-order-status-pendiente { background: rgba(193, 68, 14, 0.12); color: var(--paprika-deep); }
+.my-order-status-pendiente { background: rgba(193, 89, 46, 0.12); color: var(--paprika-deep); }
 .my-order-status-proceso { background: rgba(232, 163, 61, 0.18); color: var(--mustard-deep); }
 .my-order-status-entregado { background: rgba(79, 107, 69, 0.14); color: var(--basil-deep); }
 .my-order-status-cancelado { background: rgba(181, 69, 63, 0.12); color: #B5453F; }
