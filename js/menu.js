@@ -675,7 +675,8 @@ async function saveOrderToFirestore(paymentAmount, cardInfo) {
       customerKey: normalizeCustomerKey(cartCustomerPhone.value),
       orderCode: code,
       status: 'pendiente',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     return { orderId: docRef.id, orderCode: code };
   } catch (err) {
@@ -919,8 +920,15 @@ function clearCooldown() {
   } catch (err) { /* noop */ }
 }
 
+let isSubmittingOrder = false;
+
 cartSubmit.addEventListener('click', async (e) => {
   e.preventDefault();
+
+  // Guarda contra doble-click / doble-tap: si ya hay un envío en curso,
+  // ignoramos cualquier clic adicional de inmediato — no depende de que
+  // el navegador termine de pintar el estilo "is-sending" a tiempo.
+  if (isSubmittingOrder) return;
   if (getCartCount() === 0) return;
 
   if (restaurantInfo && restaurantInfo.isOpen === false) {
@@ -978,9 +986,18 @@ cartSubmit.addEventListener('click', async (e) => {
     return;
   }
 
+  isSubmittingOrder = true;
+  cartSubmit.disabled = true;
   cartSubmit.classList.add('is-sending');
-  const result = await saveOrderToFirestore(paymentCheck.amount, cardCheck.data);
-  cartSubmit.classList.remove('is-sending');
+
+  let result;
+  try {
+    result = await saveOrderToFirestore(paymentCheck.amount, cardCheck.data);
+  } finally {
+    isSubmittingOrder = false;
+    cartSubmit.disabled = false;
+    cartSubmit.classList.remove('is-sending');
+  }
 
   if (!result) {
     if (window.showToast) {
