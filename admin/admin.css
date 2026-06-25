@@ -401,6 +401,7 @@
 }
 .dot-pendiente { background: var(--paprika); box-shadow: 0 0 0 3px rgba(193, 89, 46, 0.25); }
 .dot-proceso { background: var(--mustard); box-shadow: 0 0 0 3px rgba(193, 89, 46, 0.2); }
+.dot-camino { background: var(--talavera); box-shadow: 0 0 0 3px rgba(61, 124, 140, 0.25); }
 .dot-entregado { background: #5FA858; box-shadow: 0 0 0 3px rgba(95, 168, 88, 0.2); }
 .dot-cancelado { background: #B5453F; box-shadow: 0 0 0 3px rgba(181, 69, 63, 0.2); }
 

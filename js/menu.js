@@ -1003,13 +1003,14 @@ cartSubmit.addEventListener('click', async (e) => {
     phone2: cartCustomerPhone2.value.trim(),
     address: cartCustomerAddress.value.trim(),
   });
-  rememberMyOrder(orderId, getCartTotal());
+  rememberMyOrder(orderId, getCartTotal(), orderCode);
   if (window.showToast) {
     showToast({
-      title: `Pedido enviado · Código ${orderCode}`,
-      message: 'Apunta tu número de pedido para rastrearlo después. Puedes cancelarlo desde "Mi pedido" los próximos 10 minutos.',
+      title: 'Pedido enviado',
+      message: 'Apunta tu número de pedido. Puedes cancelarlo desde "Mi pedido" los próximos 10 minutos.',
       type: 'success',
       duration: 9000,
+      code: orderCode,
     });
   }
   cart = [];
@@ -1043,12 +1044,13 @@ const MY_ORDER_KEY = 'lastOrder';
 
 const ORDER_STATUS_LABEL = {
   pendiente: 'Pendiente',
-  proceso: 'En proceso',
+  proceso: 'Cocinando',
+  camino: 'En camino',
   entregado: 'Entregado',
   cancelado: 'Cancelado',
 };
 
-const TIMELINE_ORDER = ['pendiente', 'proceso', 'entregado'];
+const TIMELINE_ORDER = ['pendiente', 'proceso', 'camino', 'entregado'];
 
 const orderStatusOverlay = document.getElementById('order-status-overlay');
 const orderTimeline = document.getElementById('order-timeline');
@@ -1060,8 +1062,8 @@ let myOrderUnsubscribe = null;
 let myOrderLastKnownStatus = null;
 let cancelledByMe = false;
 
-function rememberMyOrder(orderId, total) {
-  const data = { orderId, total, sentAt: Date.now() };
+function rememberMyOrder(orderId, total, orderCode) {
+  const data = { orderId, total, orderCode, sentAt: Date.now() };
   try {
     localStorage.setItem(MY_ORDER_KEY, JSON.stringify(data));
   } catch (err) {
@@ -1254,6 +1256,7 @@ document.getElementById('my-order-btn').addEventListener('click', () => {
 function openOrderStatusPanel(data) {
   orderStatusOverlay.hidden = false;
   lockBodyScroll();
+  document.getElementById('order-status-code').textContent = data.orderCode || '----';
   const status = myOrderLastKnownStatus || 'pendiente';
   renderOrderTimeline(status);
   if (status === 'pendiente' || status === 'proceso') {
@@ -1294,6 +1297,36 @@ function closeOrderStatusPanel() {
 document.getElementById('order-status-close').addEventListener('click', closeOrderStatusPanel);
 orderStatusOverlay.addEventListener('click', (e) => {
   if (e.target === orderStatusOverlay) closeOrderStatusPanel();
+});
+
+document.getElementById('order-status-code-copy').addEventListener('click', async () => {
+  const code = document.getElementById('order-status-code').textContent.trim();
+  if (!code || code === '----') return;
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(code);
+    } else {
+      // Respaldo para contextos donde la API moderna no está disponible
+      // (ej. sin HTTPS) — usa el método clásico de seleccionar y copiar.
+      const temp = document.createElement('textarea');
+      temp.value = code;
+      temp.style.position = 'fixed';
+      temp.style.opacity = '0';
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+    if (window.showToast) {
+      showToast({ title: 'Código copiado', message: code, type: 'success', duration: 3000 });
+    }
+  } catch (err) {
+    console.error('No se pudo copiar el código:', err);
+    if (window.showToast) {
+      showToast({ title: 'No se pudo copiar', message: 'Apunta el código manualmente.', type: 'error' });
+    }
+  }
 });
 
 document.getElementById('order-status-cancel-btn').addEventListener('click', () => {

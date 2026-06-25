@@ -14,7 +14,7 @@
     document.body.appendChild(container);
   }
 
-  window.showToast = function ({ title, message = '', type = 'info', duration = 6000 }) {
+  window.showToast = function ({ title, message = '', type = 'info', duration = 6000, code = '' }) {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
@@ -22,6 +22,7 @@
       <div class="toast-body">
         <p class="toast-title">${escapeToastHtml(title)}</p>
         ${message ? `<p class="toast-message">${escapeToastHtml(message)}</p>` : ''}
+        ${code ? `<button type="button" class="toast-code" data-code="${escapeToastHtml(code)}">${escapeToastHtml(code)}</button>` : ''}
       </div>
       <button class="toast-close" aria-label="Cerrar">
         <svg viewBox="0 0 20 20" width="13" height="13" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -46,6 +47,32 @@
     }
 
     toast.querySelector('.toast-close').addEventListener('click', dismiss);
+
+    const codeBtn = toast.querySelector('.toast-code');
+    if (codeBtn) {
+      codeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const value = codeBtn.dataset.code;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(value);
+          } else {
+            const temp = document.createElement('textarea');
+            temp.value = value;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+          }
+          codeBtn.classList.add('is-copied');
+          setTimeout(() => codeBtn.classList.remove('is-copied'), 1200);
+        } catch (err) {
+          console.error('No se pudo copiar:', err);
+        }
+      });
+    }
 
     return dismiss;
   };

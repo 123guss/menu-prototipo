@@ -63,9 +63,13 @@ categoría todavía"). Los platillos reales se suben desde `/admin/`.
 ## Categorías, extras y personalización del pedido
 
 - **Categorías**: viven en su propia colección (`categories`), con un contador de uso
-  (`useCount`) que sube cada vez que se publica un platillo en esa categoría — así
-  las más usadas aparecen primero al elegir categoría para un platillo nuevo. Al
-  eliminar una categoría que tiene platillos, el cajero elige explícitamente qué
+  (`useCount`) que sube cada vez que se publica un platillo en esa categoría — solo
+  se usa para **ordenar** la lista (las más usadas históricamente aparecen primero
+  al elegir categoría para un platillo nuevo). El **número que se muestra** junto a
+  cada categoría siempre es el conteo real de platillos que existen ahí en este
+  momento (calculado en tiempo real a partir de los platillos actuales, no del
+  contador acumulado) — así nunca muestra un número que ya no corresponde a nada.
+  Al eliminar una categoría que tiene platillos, el cajero elige explícitamente qué
   hacer: **mover** esos platillos a "Sin categoría", o **borrar** la categoría junto
   con todos sus platillos (irreversible). "Sin categoría" es un cajón interno —
   se ve y se administra desde el panel del cajero, pero nunca aparece como pestaña
@@ -165,12 +169,13 @@ Después de eso, "Mis pedidos" funciona sin problema.
 ## Panel de pedidos en tiempo real
 
 Además del catálogo, el panel de administración (`/admin/`, llamado "Cajero" en la
-interfaz) tiene una pestaña **"Pedidos"** con un tablero de 4 columnas:
+interfaz) tiene una pestaña **"Pedidos"** con un tablero de 5 columnas:
 
 - **Pendientes** — recién llegados, sin atender
-- **En proceso** — el cajero le dio click a "Empezar a preparar"
+- **Cocinando** — el cajero le dio click a "Empezar a cocinar"
+- **En camino** — el cajero le dio click a "Enviar (en camino)"
 - **Entregados** — ya se le dio el pedido al cliente
-- **Cancelados** — el cliente lo canceló desde su propio dispositivo
+- **Cancelados** — el cliente o el cajero lo cancelaron (disponible hasta que esté "En camino")
 
 Cuando un cliente completa un pedido desde el menú público, este se guarda
 directo en Firestore (colección `orders`) y aparece al instante en el tablero
@@ -179,7 +184,7 @@ o se cancela uno mientras el panel está abierto, aparece una notificación
 flotante (toast) con sonido para los pedidos nuevos, y la tarjeta resalta
 brevemente.
 
-Arriba del tablero hay un **buscador por nombre o teléfono** — filtra las 4
+Arriba del tablero hay un **buscador por nombre o teléfono** — filtra las 5
 columnas en tiempo real sobre los pedidos ya cargados (no hace una consulta
 nueva a Firestore por cada letra escrita).
 

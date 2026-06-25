@@ -67,13 +67,13 @@ adminTabs.forEach(tab => {
 });
 
 // ============================================================
-// PEDIDOS — tablero en tiempo real (Pendientes / En proceso /
-// Entregados / Cancelados)
+// PEDIDOS — tablero en tiempo real (Pendientes / Cocinando /
+// En camino / Entregados / Cancelados)
 // ============================================================
 
-const ORDER_STATUSES = ['pendiente', 'proceso', 'entregado', 'cancelado'];
-const ORDER_NEXT_STATUS = { pendiente: 'proceso', proceso: 'entregado' };
-const ORDER_ADVANCE_LABEL = { pendiente: 'Empezar a preparar', proceso: 'Marcar entregado' };
+const ORDER_STATUSES = ['pendiente', 'proceso', 'camino', 'entregado', 'cancelado'];
+const ORDER_NEXT_STATUS = { pendiente: 'proceso', proceso: 'camino', camino: 'entregado' };
+const ORDER_ADVANCE_LABEL = { pendiente: 'Empezar a cocinar', proceso: 'Enviar (en camino)', camino: 'Marcar entregado' };
 
 let knownOrderIds = new Set();
 let knownCancelledIds = new Set();
@@ -106,6 +106,7 @@ function renderFilteredOrdersBoard(newlyArrived, newlyCancelled) {
 
   renderOrdersColumn('pendiente', filtered.pendiente, newlyArrived || []);
   renderOrdersColumn('proceso', filtered.proceso, []);
+  renderOrdersColumn('camino', filtered.camino, []);
   renderOrdersColumn('entregado', filtered.entregado, []);
   renderOrdersColumn('cancelado', filtered.cancelado, newlyCancelled || []);
 }
@@ -119,7 +120,7 @@ function loadOrdersBoard() {
   db.collection('orders')
     .orderBy('createdAt', 'desc')
     .onSnapshot((snapshot) => {
-      const grouped = { pendiente: [], proceso: [], entregado: [], cancelado: [] };
+      const grouped = { pendiente: [], proceso: [], camino: [], entregado: [], cancelado: [] };
       const currentIds = new Set();
       const currentCancelledIds = new Set();
 
@@ -212,7 +213,7 @@ function renderOrdersColumn(status, orders, flashIds) {
       ? `<button class="order-action-btn order-action-advance" data-id="${order.id}" data-next="${nextStatus}">${ORDER_ADVANCE_LABEL[status]}</button>`
       : '';
 
-    const canCancel = status === 'pendiente' || status === 'proceso';
+    const canCancel = status === 'pendiente' || status === 'proceso' || status === 'camino';
     const cancelBtn = canCancel
       ? `<button class="order-action-btn order-action-cancel" data-id="${order.id}">Cancelar pedido</button>`
       : '';
@@ -357,11 +358,17 @@ function renderCategoryList() {
   emptyEl.hidden = true;
 
   allCategories.forEach((cat) => {
+    // Conteo real de platillos que existen AHORA en esta categoría —
+    // no el useCount acumulado (que solo sube, nunca baja cuando se
+    // elimina un platillo, y por eso podía mostrar un número que ya
+    // no correspondía a nada existente).
+    const realCount = lastDishesSnapshot.filter((d) => d.category === cat.name).length;
+
     const chip = document.createElement('div');
     chip.className = 'category-chip';
     chip.innerHTML = `
       <span class="category-chip-name">${escapeHtmlAdmin(cat.name)}</span>
-      <span class="category-chip-count">${cat.useCount || 0}</span>
+      <span class="category-chip-count">${realCount}</span>
       <button class="category-chip-delete" data-id="${cat.id}" data-name="${escapeHtmlAdmin(cat.name)}" aria-label="Eliminar categoría">
         <svg viewBox="0 0 20 20" width="13" height="13" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -705,6 +712,7 @@ function loadAdminDishes() {
         lastDishesSnapshot.push({ id: doc.id, ...doc.data() });
       });
       renderAdminDishes();
+      renderCategoryList(); // el conteo real por categoría depende de esto
     });
 }
 
@@ -1112,7 +1120,8 @@ editDishForm.addEventListener('submit', async (e) => {
 
 const ORDER_STATUS_LABEL_ES = {
   pendiente: 'Pendiente',
-  proceso: 'En proceso',
+  proceso: 'Cocinando',
+  camino: 'En camino',
   entregado: 'Entregado',
   cancelado: 'Cancelado',
 };

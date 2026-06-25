@@ -1302,6 +1302,26 @@ img { display: block; max-width: 100%; }
   line-height: 1.4;
 }
 
+.toast-code {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  color: var(--paprika, #C1592E);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.toast-code:hover { color: var(--paprika-deep, #9C461F); }
+.toast-code.is-copied { color: #3D6B33; text-decoration-color: #3D6B33; }
+.toast-code.is-copied::after { content: ' ✓ copiado'; font-size: 0.7rem; letter-spacing: normal; text-decoration: none; font-family: var(--font-body); font-weight: 600; }
+
 .toast-close {
   position: absolute;
   top: 10px;
@@ -1534,6 +1554,51 @@ img { display: block; max-width: 100%; }
   flex: 1;
 }
 
+.order-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--cream-deep);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+
+.order-code-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--coffee-faint);
+  margin: 0 0 3px;
+}
+
+.order-code-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+  color: var(--coffee);
+  margin: 0;
+}
+
+.order-code-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border-radius: 100px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  color: var(--coffee-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.order-code-copy:hover { background: var(--paprika); color: #1C140E; border-color: var(--paprika); }
+
 .order-timeline {
   display: flex;
   flex-direction: column;
@@ -1751,6 +1816,7 @@ img { display: block; max-width: 100%; }
 
 .my-order-status-pendiente { background: rgba(193, 89, 46, 0.12); color: var(--paprika-deep); }
 .my-order-status-proceso { background: rgba(232, 163, 61, 0.18); color: var(--mustard-deep); }
+.my-order-status-camino { background: rgba(61, 124, 140, 0.16); color: var(--talavera-deep); }
 .my-order-status-entregado { background: rgba(79, 107, 69, 0.14); color: var(--basil-deep); }
 .my-order-status-cancelado { background: rgba(181, 69, 63, 0.12); color: #B5453F; }
 
