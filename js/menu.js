@@ -1,22 +1,15 @@
-// ============================================================
-// PROTOTIPO — Lógica del menú público + carrito
-// Lee los platillos desde Firestore, permite personalizar cada
-// platillo (cantidad, extras con costo, nota de "quitar algo"),
-// guarda el pedido en Firestore, y abre WhatsApp con el desglose.
-// ============================================================
+// lógica del menú público + carrito
+// lee platillos de firestore, deja personalizar cada uno (cantidad, extras, notas),
+// guarda el pedido en firestore
 
 const menuList = document.getElementById('menu-list');
 const emptyState = document.getElementById('empty-state');
 const loadingState = document.getElementById('loading-state');
 const catScroll = document.getElementById('cat-scroll');
 
-// --- Bloqueo de scroll del body mientras hay un overlay abierto ---
-// Sin esto, en mobile el gesto de "deslizar hacia abajo" dentro de un
-// drawer puede terminar scrolleando la página de fondo en vez del
-// contenido del drawer — se siente como que el formulario "se traba"
-// y no se puede bajar más, aunque el drawer en sí sí tiene scroll.
-// Usamos un contador porque puede haber overlays anidados (ej. el
-// modal de "¿cancelar?" se abre encima del panel de seguimiento).
+// bloquea el scroll del body cuando hay un overlay abierto
+// sin esto, en celular el drawer se siente trabado porque el fondo también scrollea
+// uso contador porque a veces hay un modal encima de otro (cancelar encima del panel)
 let bodyScrollLockCount = 0;
 function lockBodyScroll() {
   bodyScrollLockCount += 1;
@@ -33,20 +26,13 @@ let allDishes = [];
 let allCategoryNames = [];
 let activeCategory = 'todos';
 
-// Imagen de respaldo si la foto de un platillo falla al cargar (URL
-// rota, imagen borrada de Cloudinary, sin conexión). Es un SVG inline
-// codificado en data-URI — nunca depende de un archivo externo que
-// podría a su vez fallar.
+// foto de respaldo si la del platillo no carga (url rota, cloudinary caído, etc)
+// es un svg metido directo aquí para que nunca dependa de otro archivo
 const FALLBACK_DISH_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%232B2017'/%3E%3Ccircle cx='100' cy='90' r='38' fill='none' stroke='%238C7A65' stroke-width='3'/%3E%3Cpath d='M70 150h60M85 130v25M115 130v25' stroke='%238C7A65' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E";
 
-// ============================================================
-// DATOS DEL NEGOCIO (colección "restaurant", documento "info")
-// Si el negocio configuró este documento en Firestore, lo usamos
-// para sobrescribir nombre/WhatsApp/horario en la página. Si no
-// existe todavía, no pasa nada — se quedan los valores por defecto
-// del código (el placeholder "[Nombre de tu restaurante]" y el
-// WHATSAPP_NUMBER de firebase-config.js).
-// ============================================================
+// info del negocio (colección "restaurant", documento "info")
+// si el negocio configuró esto en firestore, sobreescribe nombre/whatsapp/horario
+// si no existe, no pasa nada, se queda el placeholder de siempre
 let restaurantInfo = null;
 
 function applyRestaurantInfo(data) {
@@ -106,13 +92,12 @@ function loadRestaurantInfo() {
 // { lineId, dishId, name, basePrice, qty, extras: [{name, price}], removeNote }
 let cart = [];
 
-// --- Links de WhatsApp (header y footer) — solo para contacto general,
-// ya no forman parte del flujo de hacer un pedido ---
+// links de whatsapp del header y footer, solo para contactar, ya no se usan para pedir
 const genericWhatsAppLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola! Quisiera ver el menú')}`;
 document.getElementById('header-whatsapp').href = genericWhatsAppLink;
 document.getElementById('footer-whatsapp').href = genericWhatsAppLink;
 
-// --- Cargar platillos desde Firestore ---
+// carga los platillos de firestore
 let hasResolvedDishes = false;
 
 function showDishes(dishes) {
@@ -252,8 +237,7 @@ function renderMenu() {
   });
 }
 
-// Devuelve el array de fotos de un platillo, con compatibilidad hacia
-// atrás para platillos viejos que solo tenían imageUrl (sin array).
+// saca las fotos del platillo, si es uno viejo que solo tenía imageUrl igual funciona
 function getDishPhotos(dish) {
   if (Array.isArray(dish.imageUrls) && dish.imageUrls.length > 0) return dish.imageUrls;
   if (dish.imageUrl) return [dish.imageUrl];
@@ -266,7 +250,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ===================== MODAL DE PERSONALIZACIÓN =====================
+// modal de personalizar platillo
 
 const dishModalOverlay = document.getElementById('dish-modal-overlay');
 const dishCarouselTrack = document.getElementById('dish-carousel-track');
@@ -284,7 +268,7 @@ const dishModalTotal = document.getElementById('dish-modal-total');
 
 let modalDish = null;
 let modalQty = 1;
-let modalSelectedExtras = new Set(); // índices de extras seleccionados
+let modalSelectedExtras = new Set(); // qué extras marcó
 let modalCarouselIndex = 0;
 
 function openDishModal(dish) {
@@ -328,7 +312,7 @@ function openDishModal(dish) {
   lockBodyScroll();
 }
 
-// --- Construye el carrusel de fotos del platillo dentro del modal ---
+// armar el carrusel de fotos del platillo
 function buildDishCarousel(photos, dishName) {
   modalCarouselIndex = 0;
   dishCarouselTrack.innerHTML = '';
@@ -460,7 +444,7 @@ dishModalOverlay.addEventListener('click', (e) => {
   if (e.target === dishModalOverlay) closeDishModal();
 });
 
-// ===================== CARRITO =====================
+// carrito
 
 function lineUnitPrice(line) {
   const extrasSum = (line.extras || []).reduce((sum, ex) => sum + Number(ex.price), 0);
@@ -568,7 +552,7 @@ function renderCartItems() {
   });
 }
 
-// --- Abrir / cerrar carrito ---
+// abrir y cerrar el carrito
 const cartOverlay = document.getElementById('cart-overlay');
 
 document.getElementById('cart-toggle').addEventListener('click', () => {
@@ -595,17 +579,14 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// --- Enviar pedido: se guarda en Firestore para que el cajero lo vea
-// en tiempo real. Ya no se abre WhatsApp — ese botón quedó solo como
-// contacto general en el header/footer. ---
+// enviar el pedido, se guarda en firestore y el cajero lo ve en vivo, ya no pasa por whatsapp
 const cartSubmit = document.getElementById('cart-submit');
 const cartNote = document.getElementById('cart-note');
 const cartPayment = document.getElementById('cart-payment');
 const cartPaymentHint = document.getElementById('cart-payment-hint');
 
-// El campo de pago es opcional, pero si tiene un valor, debe ser un
-// número válido y mayor o igual al total del pedido (no tiene sentido
-// que alguien diga que paga con un billete menor a lo que debe).
+// el campo de pago es opcional, pero si lo llenan tiene que ser número
+// y no puede ser menor al total (no tiene sentido pagar con menos billete del que debe)
 function validatePayment() {
   const raw = cartPayment.value.trim();
   if (raw === '') {
@@ -633,13 +614,9 @@ function validatePayment() {
 
 cartPayment.addEventListener('input', validatePayment);
 
-// Guarda el pedido en Firestore para que aparezca en el tablero del
-// cajero, y devuelve el ID del documento creado (o null si falló).
-// Genera un código corto de 4 caracteres para rastrear el pedido por
-// teléfono/de palabra (sin caracteres ambiguos como 0/O o 1/I). No es
-// un identificador único garantizado (con ~1 millón de combinaciones
-// posibles, el riesgo de choque es muy bajo para el volumen de un
-// negocio pequeño, pero existe en teoría).
+// código de 4 letras/números para que el cliente pueda rastrear su pedido
+// (sin 0/O/1/I porque se confunden) no es 100% único pero con tan poco volumen
+// de pedidos no debería chocar nunca en la práctica
 const ORDER_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function generateOrderCode() {
   let code = '';
@@ -685,12 +662,9 @@ async function saveOrderToFirestore(paymentAmount, cardInfo) {
   }
 }
 
-// ===================== IDENTIDAD Y DATOS DEL CLIENTE =====================
-// Para que "Mis pedidos" funcione, necesitamos una forma estable de
-// identificar al mismo cliente entre visitas. Usamos el celular
-// (normalizado: solo dígitos) como clave, porque es el dato más único
-// y estable que pedimos. El resto de los campos se guardan también en
-// localStorage para autocompletar la próxima vez.
+// datos del cliente
+// usamos el celular como llave para identificarlo (sin login ni nada)
+// el resto se guarda en localStorage para que no tenga que escribirlo otra vez
 const CUSTOMER_STORAGE_KEY = 'customerProfile';
 
 const cartCustomerFirstname = document.getElementById('cart-customer-firstname');
@@ -699,9 +673,7 @@ const cartCustomerPhone = document.getElementById('cart-customer-phone');
 const cartCustomerPhone2 = document.getElementById('cart-customer-phone2');
 const cartCustomerAddress = document.getElementById('cart-customer-address');
 
-// --- Restricciones de teclado en tiempo real (no solo al enviar) ---
-// Nombre/apellido: solo letras (con acentos y ñ), espacios, apóstrofes
-// y guiones — para nombres compuestos como "María José" o "O'Brien".
+// nombre/apellido solo deja letras (con acentos, ñ, apóstrofe y guión por si el nombre es compuesto)
 function restrictToLetters(input) {
   input.addEventListener('input', () => {
     const cleaned = input.value.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñÜü' -]/g, '');
@@ -711,7 +683,7 @@ function restrictToLetters(input) {
 restrictToLetters(cartCustomerFirstname);
 restrictToLetters(cartCustomerLastname);
 
-// Celular: solo dígitos, espacios y guiones (para formatos como "5555-1234").
+// celular solo deja números, espacios y guiones
 function restrictToPhoneChars(input) {
   input.addEventListener('input', () => {
     const cleaned = input.value.replace(/[^0-9 -]/g, '');
@@ -740,7 +712,7 @@ function saveCustomerProfile(profile) {
   } catch (err) { /* noop */ }
 }
 
-// Autocompletar con lo guardado, si existe
+// si ya hay datos guardados los rellena solo
 (function restoreCustomerProfile() {
   const saved = getSavedCustomerProfile();
   if (!saved) return;
@@ -751,7 +723,7 @@ function saveCustomerProfile(profile) {
   cartCustomerAddress.value = saved.address || '';
 })();
 
-// --- Selector de método de pago (efectivo / tarjeta) ---
+// botones de efectivo / tarjeta
 let selectedPaymentMethod = 'efectivo';
 const paymentCashFields = document.getElementById('payment-cash-fields');
 const paymentCardFields = document.getElementById('payment-card-fields');
@@ -767,14 +739,11 @@ document.querySelectorAll('.payment-method-btn').forEach((btn) => {
   });
 });
 
-// ===================== CAMPOS DE TARJETA (demo, sin pago real) =====================
-// PROTOTIPO: esto valida el formato de los datos y los guarda como texto
-// plano en Firestore para la demostración. NO es seguro para una tarjeta
-// real — un pago de verdad nunca debe pasar estos datos por tu propio
-// código ni guardarlos en tu base de datos. Lo correcto es usar un campo
-// embebido de una pasarela de pago (ej. Stripe Elements) que mande los
-// datos directo a la pasarela y te devuelva solo un token. Ver el README
-// para más contexto antes de usar esto con dinero real.
+// campos de tarjeta (esto es solo para el demo, no procesa pago real)
+// IMPORTANTE: esto guarda los datos como texto en firestore, está bien para
+// mostrar el prototipo pero NUNCA se debe usar así con dinero real
+// para un pago real hay que usar algo como Stripe Elements que mande los
+// datos directo a la pasarela sin que pasen por tu código - ver el README
 
 const cardNumberInput = document.getElementById('card-number');
 const cardHolderInput = document.getElementById('card-holder');
@@ -795,7 +764,7 @@ function detectCardBrand(digits) {
   return CARD_BRANDS.find((b) => b.pattern.test(digits)) || null;
 }
 
-// Formatea el número en grupos de 4 mientras se escribe (solo dígitos)
+// agrupa el número de 4 en 4 mientras escribe
 cardNumberInput.addEventListener('input', () => {
   const digits = cardNumberInput.value.replace(/\D/g, '').slice(0, 16);
   cardNumberInput.value = digits.replace(/(.{4})/g, '$1 ').trim();
@@ -806,12 +775,12 @@ cardNumberInput.addEventListener('input', () => {
   cardCvvInput.maxLength = brand && brand.cvvLength === 4 ? 4 : 3;
 });
 
-// El nombre del titular solo acepta letras y espacios
+// nombre del titular solo letras
 cardHolderInput.addEventListener('input', () => {
   cardHolderInput.value = cardHolderInput.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
 });
 
-// La fecha de vencimiento se autoformatea como MM/AA mientras se escribe
+// fecha de vencimiento se autoformatea a MM/AA
 cardExpiryInput.addEventListener('input', () => {
   let digits = cardExpiryInput.value.replace(/\D/g, '').slice(0, 4);
   if (digits.length >= 3) {
@@ -820,7 +789,7 @@ cardExpiryInput.addEventListener('input', () => {
   cardExpiryInput.value = digits;
 });
 
-// El CVV solo acepta dígitos
+// cvv solo números
 cardCvvInput.addEventListener('input', () => {
   cardCvvInput.value = cardCvvInput.value.replace(/\D/g, '');
 });
@@ -830,8 +799,8 @@ function showCardHint(message) {
   cardFieldsHint.hidden = false;
 }
 
-// Valida los campos de tarjeta solo si el método elegido es "tarjeta".
-// Devuelve { valid: true/false, data: {...} } — data solo se llena si es válido.
+// solo valida la tarjeta si el cliente eligió pagar con tarjeta
+// devuelve { valid, data } - data viene lleno solo si valid es true
 function validateCardFields() {
   if (selectedPaymentMethod !== 'tarjeta') {
     return { valid: true, data: null };
@@ -890,9 +859,7 @@ function validateCardFields() {
   };
 }
 
-// ===================== COOLDOWN ANTI-SPAM =====================
-// Evita que el mismo cliente (mismo navegador) mande pedidos uno
-// detrás de otro sin esperar — 3 minutos entre pedidos.
+// cooldown para que no manden pedidos en cadena, 3 minutos entre cada uno
 const ORDER_COOLDOWN_MS = 3 * 60 * 1000;
 const LAST_ORDER_TIME_KEY = 'lastOrderSentAt';
 
@@ -912,8 +879,7 @@ function markOrderSentNow() {
   } catch (err) { /* noop */ }
 }
 
-// Si el pedido ya se canceló o se entregó, no tiene sentido seguir
-// haciendo esperar al cliente — puede pedir de nuevo de inmediato.
+// si ya cancelaron o entregaron el pedido ya no tiene sentido seguir esperando
 function clearCooldown() {
   try {
     localStorage.removeItem(LAST_ORDER_TIME_KEY);
@@ -1045,16 +1011,10 @@ cartSubmit.addEventListener('click', async (e) => {
   unlockBodyScroll();
 });
 
-// ============================================================
-// ============================================================
-// "MI PEDIDO" — seguimiento en tiempo real y cancelación desde
-// el navegador del cliente, sin necesitar cuenta. El ID del
-// pedido se guarda en localStorage (solo este dispositivo debe
-// poder cancelarlo), pero el estado se sigue en vivo desde
-// Firestore para avisar si el cajero lo cambia (por ejemplo,
-// si lo cancela él mismo).
-// Ventana de cancelación: 10 minutos desde que se envió.
-// ============================================================
+// "mi pedido" - el botón flotante que sigue el pedido en vivo
+// se guarda el id en localStorage (solo este dispositivo lo puede cancelar)
+// pero el estado se escucha en vivo desde firestore por si el cajero lo cambia
+// 10 minutos para poder cancelar desde que se manda
 
 const CANCEL_WINDOW_MS = 10 * 60 * 1000;
 const MY_ORDER_KEY = 'lastOrder';
@@ -1115,9 +1075,7 @@ function initMyOrderTracker() {
   }
 }
 
-// Escucha en tiempo real el documento del pedido para detectar si el
-// cajero cambia su estado (avanzarlo o cancelarlo) mientras el cliente
-// sigue en la página.
+// escucha el pedido en vivo para enterarse si el cajero cambia el estado
 function watchMyOrderStatus(orderId) {
   if (myOrderUnsubscribe) myOrderUnsubscribe();
   myOrderLastKnownStatus = null;
@@ -1126,11 +1084,8 @@ function watchMyOrderStatus(orderId) {
     if (!doc.exists) return;
     const status = doc.data().status;
 
-    // No avisar en la primera lectura (sería redundante con el toast
-    // de "pedido enviado" que ya se mostró al confirmar) — EXCEPTO si
-    // el pedido ya llegó marcado como "entregado" desde la primera
-    // lectura (el cliente cerró la página y la reabre después de que
-    // el negocio ya lo entregó): en ese caso sí queremos avisarle.
+    // en la primera lectura no avisamos (ya vio el toast de "pedido enviado")
+    // excepto si ya estaba entregado, porque puede que cerró la página y volvió después
     if (myOrderLastKnownStatus === null) {
       myOrderLastKnownStatus = status;
       if (status === 'entregado') {
@@ -1191,10 +1146,8 @@ function showMyOrderButton() {
   document.getElementById('my-order-btn-label').textContent = 'Mi pedido';
 }
 
-// Cronómetro de la ventana para CANCELAR (10 minutos) — vive dentro del
-// panel de seguimiento, no en el botón flotante. Al llegar a 0, solo
-// se oculta la opción de cancelar; el resto del panel y el botón
-// flotante siguen funcionando con normalidad.
+// cronómetro de los 10 min para cancelar, vive dentro del panel
+// cuando llega a 0 solo se oculta el botón de cancelar, el resto sigue normal
 function tickCancelWindow(data) {
   const timeLeft = CANCEL_WINDOW_MS - (Date.now() - data.sentAt);
 
@@ -1218,12 +1171,8 @@ function startCancelWindowCountdown(data) {
   cancelWindowInterval = setInterval(() => tickCancelWindow(data), 1000);
 }
 
-// --- Cuenta regresiva aparte tras la entrega ---
-// Independiente del cronómetro de cancelación: en cuanto el pedido pasa
-// a "entregado", el botón flotante se reinicia a 1:30 (sin importar
-// cuánto le quedaba al cronómetro de cancelar), y al llegar a cero el
-// botón "Mi pedido" desaparece y se cierra el panel de seguimiento si
-// estaba abierto. Es solo visual — no afecta nada más del pedido.
+// este es otro cronómetro distinto, el de después de entregado
+// cuando llega a 0 se esconde el botón "mi pedido" y se cierra el panel si estaba abierto
 const DELIVERED_COUNTDOWN_MS = 90 * 1000;
 let deliveredCountdownEndAt = null;
 
@@ -1269,7 +1218,7 @@ document.getElementById('my-order-btn').addEventListener('click', () => {
   openOrderStatusPanel(data);
 });
 
-// --- Panel de seguimiento (línea de tiempo) ---
+// panel con la línea de tiempo
 function openOrderStatusPanel(data) {
   orderStatusOverlay.hidden = false;
   lockBodyScroll();
@@ -1352,7 +1301,7 @@ document.getElementById('order-status-cancel-btn').addEventListener('click', () 
   openCancelConfirm(data);
 });
 
-// --- Confirmación de cancelación ---
+// confirmar antes de cancelar
 const cancelConfirmOverlay = document.getElementById('cancel-confirm-overlay');
 
 function openCancelConfirm(data) {
@@ -1399,21 +1348,15 @@ document.getElementById('cancel-confirm-yes').addEventListener('click', async ()
   }
 });
 
-// ============================================================
-// "MIS PEDIDOS" — historial de pedidos del mismo cliente
-// (identificado por nombre/teléfono guardado en su navegador),
-// con estado en tiempo real para cada uno.
-// ============================================================
+// "mis pedidos" - historial de pedidos del cliente, identificado por su teléfono
 
 const myOrdersOverlay = document.getElementById('my-orders-overlay');
 const myOrdersList = document.getElementById('my-orders-list');
 const myOrdersEmpty = document.getElementById('my-orders-empty');
 let myOrdersUnsubscribe = null;
 
-// El botón "Mis pedidos" se quitó del header por pedido del negocio,
-// pero dejamos toda la lógica de "Mis pedidos" intacta (panel, listener
-// de Firestore, etc.) por si se reactiva desde otro lugar más adelante.
-// Esta comprobación evita que el script se rompa si el botón no existe.
+// el botón de "mis pedidos" se quitó del header pero dejamos toda la lógica
+// por si la quieren de vuelta después, este if evita que truene si el botón no existe
 const myOrdersToggleBtn = document.getElementById('my-orders-toggle');
 if (myOrdersToggleBtn) {
   myOrdersToggleBtn.addEventListener('click', () => {
@@ -1502,7 +1445,7 @@ function renderMyOrdersList(orders) {
   });
 }
 
-// --- Iniciar ---
+// arranca todo
 updateCartUI();
 loadDishes();
 loadCategoryNames();

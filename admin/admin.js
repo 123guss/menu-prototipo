@@ -1,14 +1,9 @@
-// ============================================================
-// PROTOTIPO — Lógica del panel de administración
-// Login con Firebase Auth + subir fotos a Cloudinary +
-// guardar datos en Firestore + listar/eliminar platillos +
-// tablero de pedidos en tiempo real.
-// ============================================================
+// panel del cajero - login, subir fotos a cloudinary, guardar en firestore,
+// listar/borrar platillos, tablero de pedidos en vivo
 
 const auth = firebase.auth();
 
-// Imagen de respaldo si la foto de un platillo falla al cargar.
-// SVG inline en data-URI — nunca depende de un archivo externo.
+// foto de respaldo si la del platillo no carga, svg metido aquí mismo
 const ADMIN_FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%232B2017'/%3E%3Ccircle cx='100' cy='90' r='38' fill='none' stroke='%238C7A65' stroke-width='3'/%3E%3Cpath d='M70 150h60M85 130v25M115 130v25' stroke='%238C7A65' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E";
 
 const loginScreen = document.getElementById('login-screen');
@@ -16,7 +11,7 @@ const adminPanel = document.getElementById('admin-panel');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
 
-// --- Manejo de sesión ---
+// maneja si está logueado o no
 auth.onAuthStateChanged((user) => {
   if (user) {
     loginScreen.hidden = true;
@@ -48,7 +43,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   auth.signOut();
 });
 
-// --- Cambiar entre pestañas (Pedidos / Menú) ---
+// cambiar entre las pestañas de arriba
 const adminTabs = document.querySelectorAll('.admin-tab');
 const tabPanels = {
   orders: document.getElementById('tab-orders'),
@@ -66,10 +61,7 @@ adminTabs.forEach(tab => {
   });
 });
 
-// ============================================================
-// PEDIDOS — tablero en tiempo real (Pendientes / Cocinando /
-// En camino / Entregados / Cancelados)
-// ============================================================
+// tablero de pedidos: pendientes / cocinando / en camino / entregados / cancelados
 
 const ORDER_STATUSES = ['pendiente', 'proceso', 'camino', 'entregado', 'cancelado'];
 const ORDER_NEXT_STATUS = { pendiente: 'proceso', proceso: 'camino', camino: 'entregado' };
@@ -78,11 +70,10 @@ const ORDER_ADVANCE_LABEL = { pendiente: 'Empezar a cocinar', proceso: 'Enviar (
 let knownOrderIds = new Set();
 let knownCancelledIds = new Set();
 let isFirstOrdersLoad = true;
-// IDs de pedidos que el cajero canceló desde su propio panel — para esos
-// no mostramos el toast de "el cliente canceló", porque sería confuso.
+// ids de pedidos que canceló el propio cajero, para no mandarle el toast de "el cliente canceló"
 const cancelledByCashier = new Set();
 
-// --- Búsqueda por nombre o teléfono ---
+// buscador por nombre o teléfono
 let lastGroupedOrders = { pendiente: [], proceso: [], entregado: [], cancelado: [] };
 let ordersSearchQuery = '';
 
@@ -269,7 +260,7 @@ function renderOrdersColumn(status, orders, flashIds) {
   });
 }
 
-// Calcula el vuelto a partir del paymentNote (formato "Q100") y el total.
+// calcula el vuelto a partir del paymentNote (tipo "Q100") y el total
 function formatChange(paymentNote, total) {
   const match = /Q(\d+(\.\d+)?)/.exec(paymentNote || '');
   if (!match) return '';
@@ -285,7 +276,7 @@ function escapeHtmlAdmin(str) {
   return div.innerHTML;
 }
 
-// --- Sonido de notificación (generado, sin archivo externo) ---
+// sonido del beep, generado con código, no es un archivo de audio
 let audioCtx = null;
 function playNotificationSound() {
   try {
@@ -310,10 +301,7 @@ function playNotificationSound() {
 }
 
 
-// ============================================================
-// CATEGORÍAS — gestión completa (cargar, crear, eliminar,
-// reasignación automática de platillos al borrar una categoría)
-// ============================================================
+// categorías - cargar, crear, borrar, mover platillos cuando se borra una
 
 const categorySelect = document.getElementById('dish-category');
 const categoryNewInput = document.getElementById('dish-category-new');
@@ -396,8 +384,8 @@ function renderCategorySelect() {
   categorySelect.appendChild(newOpt);
 }
 
-// Crea la categoría si no existe, o suma 1 a su contador de uso si ya existe.
-// Se llama cada vez que se publica un platillo con esa categoría.
+// crea la categoría si no existe, o le suma 1 al contador si ya existe
+// se llama cada vez que se publica un platillo en esa categoría
 async function touchCategory(name) {
   const existing = allCategories.find((c) => c.name.toLowerCase() === name.toLowerCase());
   if (existing) {
@@ -433,8 +421,7 @@ document.getElementById('new-category-form').addEventListener('submit', async (e
   input.value = '';
 });
 
-// --- Eliminar categoría: reasigna sus platillos a "Sin categoría" en vez
-// de bloquear el borrado o eliminarlos — es la opción reversible y segura ---
+// borrar categoría: pregunta si mover los platillos a "sin categoría" o borrarlos todos
 const categoryConfirmOverlay = document.getElementById('category-confirm-overlay');
 let pendingCategoryDelete = null;
 
@@ -467,7 +454,7 @@ document.getElementById('category-confirm-cancel').addEventListener('click', () 
   pendingCategoryDelete = null;
 });
 
-// Opción 1: mover los platillos afectados a "Sin categoría" y borrar la categoría.
+// opción 1: mover los platillos a "sin categoría" y borrar la categoría
 document.getElementById('category-confirm-move').addEventListener('click', async () => {
   if (!pendingCategoryDelete) return;
   const { id, name } = pendingCategoryDelete;
@@ -487,8 +474,8 @@ document.getElementById('category-confirm-move').addEventListener('click', async
   pendingCategoryDelete = null;
 });
 
-// Opción 2: borrar la categoría Y todos sus platillos (incluyendo sus fotos en Cloudinary
-// quedan huérfanas — Cloudinary no se limpia desde el cliente, ver README).
+// opción 2: borrar la categoría y todos sus platillos
+// (las fotos en cloudinary se quedan huérfanas, eso no se limpia desde aquí, ver README)
 document.getElementById('category-confirm-delete').addEventListener('click', async () => {
   if (!pendingCategoryDelete) return;
   const { id, name } = pendingCategoryDelete;
@@ -508,7 +495,7 @@ document.getElementById('category-confirm-delete').addEventListener('click', asy
   pendingCategoryDelete = null;
 });
 
-// --- Constructor de extras (filas dinámicas nombre + precio) ---
+// agregar filas de extras (nombre + precio)
 const extrasBuilder = document.getElementById('extras-builder');
 const addExtraBtn = document.getElementById('add-extra-btn');
 let extraRowCount = 0;
@@ -547,7 +534,7 @@ function clearExtrasForm() {
   extrasBuilder.innerHTML = '';
 }
 
-// --- Galería de fotos (hasta 10), con preview individual y opción de quitar ---
+// galería de fotos, hasta 10, con preview y poder quitar cada una
 const MAX_PHOTOS = 10;
 const imageInput = document.getElementById('image-input');
 const photoGalleryGrid = document.getElementById('photo-gallery-grid');
@@ -612,7 +599,7 @@ function clearPhotoGallery() {
   renderPhotoGallery();
 }
 
-// --- Publicar nuevo platillo ---
+// publicar el platillo nuevo
 const uploadForm = document.getElementById('upload-form');
 const publishBtn = document.getElementById('publish-btn');
 const uploadStatus = document.getElementById('upload-status');
@@ -673,7 +660,7 @@ uploadForm.addEventListener('submit', async (e) => {
   }
 });
 
-// --- Sube una imagen a Cloudinary y devuelve la URL pública ---
+// sube la imagen a cloudinary y devuelve el link
 async function uploadToCloudinary(file) {
   const formData = new FormData();
   formData.append('file', file);
@@ -698,7 +685,7 @@ function showStatus(msg, type) {
   uploadStatus.className = `upload-status ${type === 'loading' ? '' : type}`;
 }
 
-// --- Listar platillos existentes en el panel, agrupados por categoría ---
+// lista los platillos agrupados por categoría
 const adminGrid = document.getElementById('admin-grid');
 const adminEmpty = document.getElementById('admin-empty');
 let lastDishesSnapshot = [];
@@ -716,9 +703,8 @@ function loadAdminDishes() {
     });
 }
 
-// Se llama tanto cuando cambian los platillos como cuando cambian las
-// categorías (loadCategories también la invoca), para que una categoría
-// recién creada o que se quedó vacía se vea correctamente sin recargar.
+// se llama cuando cambian los platillos o las categorías, para que una categoría
+// nueva o que se quedó vacía se vea bien sin tener que recargar
 function renderAdminDishes() {
   adminGrid.innerHTML = '';
 
@@ -827,7 +813,7 @@ function renderAdminDishes() {
   setupDishDragAndDrop();
 }
 
-// --- Arrastrar y soltar: mover un platillo a otra categoría ---
+// arrastrar un platillo para moverlo de categoría
 let draggedDishId = null;
 
 function setupDishDragAndDrop() {
@@ -874,7 +860,7 @@ function setupDishDragAndDrop() {
   });
 }
 
-// --- Eliminar platillo (con confirmación) ---
+// borrar platillo, con confirmación antes
 const confirmOverlay = document.getElementById('confirm-overlay');
 let pendingDeleteId = null;
 
@@ -899,7 +885,7 @@ document.getElementById('confirm-delete').addEventListener('click', async () => 
   pendingDeleteId = null;
 });
 
-// --- Confirmación de cancelación de pedido (lado cajero) ---
+// confirmar antes de cancelar un pedido desde el panel
 const orderCancelConfirmOverlay = document.getElementById('order-cancel-confirm-overlay');
 let pendingOrderCancelId = null;
 
@@ -929,10 +915,7 @@ document.getElementById('order-cancel-confirm-yes').addEventListener('click', as
   pendingOrderCancelId = null;
 });
 
-// ============================================================
-// EDITAR PLATILLO — nombre, precio, categoría, descripción,
-// quitar fotos existentes y/o agregar fotos nuevas.
-// ============================================================
+// editar platillo - nombre, precio, categoría, descripción, quitar/agregar fotos
 
 const editDishOverlay = document.getElementById('edit-dish-overlay');
 const editDishForm = document.getElementById('edit-dish-form');
@@ -949,9 +932,9 @@ const editPhotoGalleryGrid = document.getElementById('edit-photo-gallery-grid');
 const editPhotoGalleryAdd = document.getElementById('edit-photo-gallery-add');
 const editPhotoGalleryCount = document.getElementById('edit-photo-gallery-count');
 
-// Fotos existentes (ya en Cloudinary, son URLs) y fotos nuevas (archivos
-// locales todavía no subidos) se manejan en listas separadas, cada una
-// con un uid estable — mismo patrón que el formulario de "Agregar".
+// fotos existentes (ya en cloudinary, son links) y fotos nuevas (archivos locales
+// que aún no se suben) van en listas separadas, cada una con un uid fijo
+// mismo patrón que el form de agregar platillo
 let editExistingPhotos = []; // [{ uid, url }]
 let editNewPhotos = []; // [{ uid, file }]
 
@@ -1112,11 +1095,8 @@ editDishForm.addEventListener('submit', async (e) => {
   }
 });
 
-// ============================================================
-// BUSCAR PEDIDO — por nombre, teléfono o código de 4 caracteres.
-// Útil cuando un cliente llama y dice cualquiera de esos datos;
-// el cajero ubica su pedido sin tener que recorrer las 4 columnas.
-// ============================================================
+// buscar pedido por nombre, teléfono o el código de 4 letras
+// para cuando un cliente llama y el cajero necesita encontrarlo rápido
 
 const ORDER_STATUS_LABEL_ES = {
   pendiente: 'Pendiente',

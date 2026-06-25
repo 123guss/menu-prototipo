@@ -1,20 +1,14 @@
-/* ===================================================================
-   [Nombre de tu restaurante] — Sistema de diseño
-   Dirección: cantina / colonial mexicana cálida. Ladrillo expuesto,
-   roble miel, terracota, luces de farol doradas. Fondo de madera
-   oscura (textura real, ver assets/wood-bg.jpg) con tarjetas apenas
-   más claras. Type: Fraunces (display) + Inter (UI/datos)
-=================================================================== */
+/* estilos del sitio
+   onda cantina mexicana - madera, terracota, luces de farol
+   fuentes: fraunces para títulos, inter para todo lo demás */
 
 :root {
-  /* Fondo y superficies — café oscuro tipo madera vieja, con tarjetas
-     apenas más claras que el fondo (nunca blancas) */
+  /* fondo y tarjetas, café oscuro tipo madera vieja, nunca blanco */
   --cream:        #1C140E;
   --cream-deep:    #241A12;
   --card:          #2B2017;
 
-  /* Marca — terracota/ladrillo como acento principal, dorado de farol
-     como secundario */
+  /* terracota es el color principal, dorado es el secundario */
   --paprika:       #C1592E;
   --paprika-deep:  #9C461F;
   --mustard:       #E0A23A;
@@ -22,21 +16,18 @@
   --basil:         #6B8A4E;
   --basil-deep:    #4A6536;
 
-  /* Acentos adicionales — para variar el sistema sin perder cohesión:
-     ladrillo cocido (más rojo que el terracota de marca) y azul
-     talavera (el toque de cerámica mexicana, usado con moderación) */
+  /* colores extra para no usar siempre lo mismo: ladrillo y azul talavera */
   --brick:         #9C3B2E;
   --brick-deep:    #7A2C21;
   --talavera:      #3D7C8C;
   --talavera-deep: #2C5C68;
 
-  /* Texto — crema cálido sobre fondo de madera oscura */
+  /* texto crema sobre el fondo oscuro */
   --coffee:        #F2E6D8;
   --coffee-soft:   #C7B49E;
   --coffee-faint:  #8C7A65;
 
-  /* Panel del cajero — mismo lenguaje cálido que el cliente, una
-     sola identidad visual en todo el sistema. */
+  /* panel del cajero usa los mismos colores que el sitio del cliente */
   --kitchen-bg:     #1C140E;
   --kitchen-surface: #2B2017;
   --kitchen-line:   rgba(242, 230, 216, 0.10);
@@ -93,7 +84,7 @@ img { display: block; max-width: 100%; }
   }
 }
 
-/* ===================== HEADER ===================== */
+/* header */
 .site-header {
   position: sticky;
   top: 0;
@@ -243,7 +234,7 @@ img { display: block; max-width: 100%; }
   border: 2px solid var(--cream);
 }
 
-/* ===================== HERO ===================== */
+/* hero */
 .hero {
   padding: 64px 32px 56px;
   max-width: 1440px;
@@ -373,7 +364,7 @@ img { display: block; max-width: 100%; }
   .hero { padding: 44px 20px 40px; }
 }
 
-/* ===================== CHEF EXPERIENCE SECTION ===================== */
+/* chef experience section */
 .chef-section {
   padding: 0 32px 64px;
   max-width: 1440px;
@@ -457,7 +448,7 @@ img { display: block; max-width: 100%; }
   justify-content: center;
 }
 
-/* ===================== CATEGORY NAV ===================== */
+/* category nav */
 .cat-nav {
   position: sticky;
   top: 67px;
@@ -502,7 +493,7 @@ img { display: block; max-width: 100%; }
   border-color: var(--coffee);
 }
 
-/* ===================== MENU GRID ===================== */
+/* menu grid */
 .menu-wrap {
   max-width: 1140px;
   margin: 0 auto;
@@ -632,7 +623,7 @@ img { display: block; max-width: 100%; }
 
 .dish-add.is-in-cart { background: var(--basil); color: var(--cream); }
 
-/* ===================== EMPTY / LOADING ===================== */
+/* empty / loading */
 .empty-state, .loading-state {
   text-align: center;
   padding: 70px 20px;
@@ -653,7 +644,7 @@ img { display: block; max-width: 100%; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===================== CART DRAWER ===================== */
+/* cart drawer */
 .cart-overlay[hidden] { display: none; }
 
 .cart-overlay {
@@ -904,7 +895,7 @@ img { display: block; max-width: 100%; }
 .cart-submit:hover { background: var(--paprika-deep); transform: translateY(-1px); }
 .cart-submit.is-sending { opacity: 0.7; pointer-events: none; }
 
-/* ===================== FOOTER ===================== */
+/* footer */
 .site-footer {
   background: var(--cream-deep);
   color: var(--coffee);
@@ -951,7 +942,7 @@ img { display: block; max-width: 100%; }
   margin: 0;
 }
 
-/* ===================== DISH CUSTOMIZATION MODAL ===================== */
+/* dish customization modal */
 .dish-modal-overlay[hidden] { display: none; }
 
 .dish-modal-overlay {
@@ -1213,7 +1204,7 @@ img { display: block; max-width: 100%; }
   .dish-modal-qty { justify-content: center; }
 }
 
-/* ===================== CLOSED BANNER ===================== */
+/* closed banner */
 .closed-banner {
   position: sticky;
   top: 0;
@@ -1236,7 +1227,7 @@ img { display: block; max-width: 100%; }
   opacity: 0.9;
 }
 
-/* ===================== TOAST NOTIFICATIONS (compartido) ===================== */
+/* toasts (compartido entre admin y cliente) */
 .toast-container {
   position: fixed;
   top: 16px;
@@ -1366,7 +1357,7 @@ img { display: block; max-width: 100%; }
   .toast-bar-fill { animation: none; }
 }
 
-/* ===================== MI PEDIDO (botón flotante) ===================== */
+/* botón flotante de mi pedido */
 .my-order-btn[hidden] { display: none; }
 
 .my-order-btn {
@@ -1397,7 +1388,7 @@ img { display: block; max-width: 100%; }
 
 #my-order-timer { font-variant-numeric: tabular-nums; color: var(--mustard); }
 
-/* ===================== CONFIRMAR CANCELACIÓN ===================== */
+/* confirmar cancelación */
 .cancel-confirm-overlay[hidden] { display: none; }
 
 .cancel-confirm-overlay {
@@ -1457,7 +1448,7 @@ img { display: block; max-width: 100%; }
   color: white;
 }
 
-/* ===================== CART CUSTOMER FIELD ===================== */
+/* cart customer field */
 .cart-customer-hint {
   font-size: 0.74rem;
   color: var(--coffee-faint);
@@ -1546,7 +1537,7 @@ img { display: block; max-width: 100%; }
   line-height: 1.4;
 }
 
-/* ===================== PANEL DE SEGUIMIENTO (LÍNEA DE TIEMPO) ===================== */
+/* panel de seguimiento (línea de tiempo) */
 .order-status-body {
   padding: 22px;
   display: flex;
@@ -1722,7 +1713,7 @@ img { display: block; max-width: 100%; }
 }
 .order-status-cancel-btn:hover { background: rgba(181, 69, 63, 0.08); }
 
-/* ===================== RASTREAR PEDIDO POR CÓDIGO ===================== */
+/* rastrear pedido por código */
 .track-order-body {
   padding: 22px;
   display: flex;
@@ -1782,7 +1773,7 @@ img { display: block; max-width: 100%; }
 }
 .track-order-error[hidden] { display: none; }
 
-/* ===================== MIS PEDIDOS ===================== */
+/* mis pedidos */
 .my-orders-list {
   padding: 4px 22px 22px;
   display: flex;

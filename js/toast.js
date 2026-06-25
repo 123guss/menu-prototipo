@@ -1,9 +1,5 @@
-// ============================================================
-// SISTEMA DE NOTIFICACIONES (TOAST) — compartido
-// Mensajes flotantes con animación de entrada/salida y una
-// barra de tiempo que se vacía hasta que el toast desaparece solo.
-// Uso: showToast({ title, message, type, duration })
-// ============================================================
+// notificaciones tipo toast, las de arriba a la derecha que se cierran solas
+// uso: showToast({ title, message, type, duration })
 
 (function () {
   let container = document.getElementById('toast-container');

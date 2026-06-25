@@ -1,9 +1,5 @@
-/* ===================================================================
-   [Nombre de tu restaurante] — Panel de cajero
-   Misma identidad cálida/rústica que el sitio público: madera
-   oscura de fondo, terracota como acento principal, dorado de
-   farol como secundario — una sola marca en todo el sistema.
-=================================================================== */
+/* estilos del panel del cajero
+   mismos colores que el sitio del cliente, madera y terracota */
 
 .admin-body {
   background:
@@ -12,7 +8,7 @@
   min-height: 100vh;
 }
 
-/* ===================== LOGIN ===================== */
+/* login */
 .login-screen[hidden] { display: none; }
 
 .login-screen {
@@ -99,11 +95,11 @@
   margin-top: 16px;
 }
 
-/* ===================== ADMIN PANEL ===================== */
+/* admin panel */
 .admin-panel[hidden] { display: none; }
 .admin-panel { background: var(--kitchen-bg); min-height: 100vh; }
 
-/* ===================== ADMIN HEADER ===================== */
+/* admin header */
 .admin-header {
   background: var(--kitchen-surface);
   border-bottom: 2px solid var(--talavera);
@@ -175,7 +171,7 @@
 }
 .admin-logout:hover { background: var(--kitchen-bg); color: var(--kitchen-text); }
 
-/* ===================== ADMIN TABS ===================== */
+/* admin tabs */
 .admin-tabs {
   max-width: 1280px;
   margin: 0 auto;
@@ -226,7 +222,7 @@
 
 .admin-tab-panel[hidden] { display: none; }
 
-/* ===================== ORDERS BOARD ===================== */
+/* orders board */
 .admin-main { max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; }
 
 .orders-search-bar {
@@ -253,7 +249,7 @@
 #orders-search:focus { outline: none; }
 #orders-search::placeholder { color: var(--kitchen-text-soft); }
 
-/* ===================== BUSCAR PEDIDO ===================== */
+/* buscar pedido */
 .search-order-card {
   max-width: 640px;
   margin: 0 auto;
@@ -439,7 +435,7 @@
 }
 .orders-empty[hidden] { display: none; }
 
-/* Order card */
+/* tarjeta de pedido */
 .order-card {
   background: var(--kitchen-bg);
   border-radius: var(--radius-sm);
@@ -570,7 +566,7 @@
 }
 .order-action-remove:hover { color: var(--paprika-deep); }
 
-/* ===================== MENU MANAGEMENT TAB ===================== */
+/* menu management tab */
 #tab-menu {
   max-width: 1080px;
   margin: 0 auto;
@@ -616,7 +612,7 @@
 
 .admin-card-categories .admin-card-header { margin-bottom: 16px; }
 
-/* ===================== UPLOAD FORM ===================== */
+/* upload form */
 .upload-form {
   display: flex;
   flex-direction: column;
@@ -749,7 +745,7 @@
 .upload-status.success { color: var(--basil); }
 .upload-status.error { color: #B5453F; }
 
-/* ===================== CATEGORY MANAGEMENT ===================== */
+/* category management */
 .admin-card-hint {
   font-size: 0.84rem;
   color: var(--coffee-soft);
@@ -842,7 +838,7 @@
 }
 .new-category-btn:hover { background: var(--paprika); }
 
-/* ===================== EXTRAS BUILDER ===================== */
+/* extras builder */
 .extras-builder {
   display: flex;
   flex-direction: column;
@@ -895,7 +891,7 @@
 }
 .add-extra-btn:hover { color: var(--paprika-deep); }
 
-/* ===================== ADMIN GRID (existing dishes, grouped by category) ===================== */
+/* menú actual, agrupado por categoría */
 .admin-grid {
   display: flex;
   flex-direction: column;
@@ -1104,7 +1100,7 @@
   margin: 0;
 }
 
-/* ===================== CONFIRM DELETE MODAL ===================== */
+/* confirm delete modal */
 .confirm-overlay[hidden] { display: none; }
 
 .confirm-overlay {
@@ -1174,7 +1170,7 @@
   color: white;
 }
 
-/* ===================== EDIT DISH MODAL ===================== */
+/* edit dish modal */
 .edit-dish-overlay[hidden] { display: none; }
 
 .edit-dish-overlay {
@@ -1231,12 +1227,8 @@
   padding: 20px 22px 24px;
 }
 
-/* ===================================================================
-   El panel del cajero comparte el mismo lenguaje visual cálido que
-   el sitio del cliente — esquinas suavemente redondeadas (no rectas,
-   no en forma de píldora), usando las mismas variables de --radius
-   definidas en styles.css.
-=================================================================== */
+/* esquinas redondeadas, mismo nivel que el sitio del cliente, usa las
+   variables de --radius de styles.css */
 .orders-column,
 .order-card,
 .admin-card,
