@@ -747,16 +747,22 @@ function renderAdminDishes() {
         const item = document.createElement('div');
         item.className = 'admin-item';
         if (d.active === false) item.classList.add('is-inactive');
-        item.draggable = true;
         item.dataset.dishId = d.id;
+        item.dataset.category = category;
         const photos = d.imageUrls || (d.imageUrl ? [d.imageUrl] : []);
         const isActive = d.active !== false;
         item.innerHTML = `
+          <div class="admin-item-drag-handle" aria-hidden="true">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none"><circle cx="6" cy="5" r="1.4" fill="currentColor"/><circle cx="6" cy="10" r="1.4" fill="currentColor"/><circle cx="6" cy="15" r="1.4" fill="currentColor"/><circle cx="14" cy="5" r="1.4" fill="currentColor"/><circle cx="14" cy="10" r="1.4" fill="currentColor"/><circle cx="14" cy="15" r="1.4" fill="currentColor"/></svg>
+          </div>
           <div class="admin-item-actions">
             <button class="admin-item-toggle" data-id="${d.id}" data-active="${isActive}" aria-label="${isActive ? 'Pausar platillo' : 'Activar platillo'}">
               ${isActive
                 ? '<svg viewBox="0 0 20 20" width="14" height="14" fill="none"><rect x="6" y="4" width="3" height="12" rx="1" fill="currentColor"/><rect x="11" y="4" width="3" height="12" rx="1" fill="currentColor"/></svg>'
                 : '<svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M6 4l10 6-10 6V4z" fill="currentColor"/></svg>'}
+            </button>
+            <button class="admin-item-move" data-id="${d.id}" data-name="${escapeHtmlAdmin(d.name)}" aria-label="Mover a otra categoría">
+              <svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M3 6.5h8M3 10h12M3 13.5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 7l2 3-2 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <button class="admin-item-edit" data-id="${d.id}" aria-label="Editar">
               <svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -781,6 +787,13 @@ function renderAdminDishes() {
     }
 
     adminGrid.appendChild(section);
+  });
+
+  adminGrid.querySelectorAll('.admin-item-move').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMoveCategoryMenu(btn.dataset.id, btn.dataset.name);
+    });
   });
 
   adminGrid.querySelectorAll('.admin-item-toggle').forEach((btn) => {
@@ -816,48 +829,151 @@ function renderAdminDishes() {
 // arrastrar un platillo para moverlo de categoría
 let draggedDishId = null;
 
-function setupDishDragAndDrop() {
-  adminGrid.querySelectorAll('.admin-item').forEach((item) => {
-    item.addEventListener('dragstart', () => {
-      draggedDishId = item.dataset.dishId;
-      item.classList.add('is-dragging');
-    });
-    item.addEventListener('dragend', () => {
-      item.classList.remove('is-dragging');
-      draggedDishId = null;
-      adminGrid.querySelectorAll('.admin-grid-inner.is-drop-target').forEach((el) => {
-        el.classList.remove('is-drop-target');
-      });
+// menú de "mover a categoría" - alternativa al drag para cuando no se quiere arrastrar
+const moveCategoryOverlay = document.getElementById('move-category-overlay');
+const moveCategoryList = document.getElementById('move-category-list');
+let pendingMoveDishId = null;
+
+function openMoveCategoryMenu(dishId, dishName) {
+  pendingMoveDishId = dishId;
+  document.getElementById('move-category-dish-name').textContent = dishName;
+
+  const dish = lastDishesSnapshot.find((d) => d.id === dishId);
+  const currentCategory = dish ? (dish.category || UNCATEGORIZED) : null;
+
+  const names = allCategories.map((c) => c.name);
+  if (!names.includes(UNCATEGORIZED)) names.push(UNCATEGORIZED);
+
+  moveCategoryList.innerHTML = names.map((name) => `
+    <button type="button" class="move-category-option ${name === currentCategory ? 'is-current' : ''}" data-category="${escapeHtmlAdmin(name)}">
+      ${escapeHtmlAdmin(name)}
+      ${name === currentCategory ? '<span class="move-category-here">ya está aquí</span>' : ''}
+    </button>
+  `).join('');
+
+  moveCategoryList.querySelectorAll('.move-category-option').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (btn.classList.contains('is-current')) return;
+      const newCategory = btn.dataset.category;
+      try {
+        await db.collection('dishes').doc(pendingMoveDishId).update({ category: newCategory });
+        if (newCategory !== UNCATEGORIZED) {
+          await touchCategory(newCategory);
+        }
+      } catch (err) {
+        console.error('no se pudo mover el platillo:', err);
+      }
+      moveCategoryOverlay.hidden = true;
     });
   });
 
-  adminGrid.querySelectorAll('.admin-grid-inner').forEach((zone) => {
-    zone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      zone.classList.add('is-drop-target');
-    });
-    zone.addEventListener('dragleave', () => {
-      zone.classList.remove('is-drop-target');
-    });
-    zone.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      zone.classList.remove('is-drop-target');
-      if (!draggedDishId) return;
+  moveCategoryOverlay.hidden = false;
+}
 
-      const newCategory = zone.dataset.category;
-      const dish = lastDishesSnapshot.find((d) => d.id === draggedDishId);
-      if (!dish || dish.category === newCategory) return;
+document.getElementById('move-category-close').addEventListener('click', () => {
+  moveCategoryOverlay.hidden = true;
+});
+moveCategoryOverlay.addEventListener('click', (e) => {
+  if (e.target === moveCategoryOverlay) moveCategoryOverlay.hidden = true;
+});
 
+// arrastrar para mover de categoría - usa pointer events para que funcione
+// igual con mouse y con el dedo en celular (antes solo servía con mouse)
+let dragGhost = null;
+let dragSourceItem = null;
+let dragCurrentZone = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragHasMoved = false;
+
+function setupDishDragAndDrop() {
+  adminGrid.querySelectorAll('.admin-item').forEach((item) => {
+    const handle = item.querySelector('.admin-item-drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      startDishDrag(item, e.clientX, e.clientY);
+    });
+  });
+}
+
+function startDishDrag(item, startX, startY) {
+  draggedDishId = item.dataset.dishId;
+  dragSourceItem = item;
+  dragStartX = startX;
+  dragStartY = startY;
+  dragHasMoved = false;
+  dragCurrentZone = null;
+
+  item.classList.add('is-dragging');
+
+  // tarjeta fantasma que sigue al dedo/mouse, así se ve "agarrada" de verdad
+  const rect = item.getBoundingClientRect();
+  dragGhost = item.cloneNode(true);
+  dragGhost.classList.add('admin-item-ghost');
+  dragGhost.style.width = `${rect.width}px`;
+  dragGhost.style.left = `${rect.left}px`;
+  dragGhost.style.top = `${rect.top}px`;
+  document.body.appendChild(dragGhost);
+
+  document.addEventListener('pointermove', onDishDragMove);
+  document.addEventListener('pointerup', onDishDragEnd);
+  document.addEventListener('pointercancel', onDishDragEnd);
+}
+
+function onDishDragMove(e) {
+  if (!dragGhost) return;
+
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+  if (!dragHasMoved && Math.hypot(dx, dy) > 6) dragHasMoved = true;
+
+  dragGhost.style.transform = `translate(${dx}px, ${dy}px) scale(1.06)`;
+
+  // oculta el fantasma un instante para que elementFromPoint detecte lo de abajo, no a sí mismo
+  dragGhost.style.visibility = 'hidden';
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  dragGhost.style.visibility = 'visible';
+
+  const zone = target ? target.closest('.admin-grid-inner') : null;
+  if (zone !== dragCurrentZone) {
+    if (dragCurrentZone) dragCurrentZone.classList.remove('is-drop-target');
+    if (zone) zone.classList.add('is-drop-target');
+    dragCurrentZone = zone;
+  }
+}
+
+async function onDishDragEnd(e) {
+  document.removeEventListener('pointermove', onDishDragMove);
+  document.removeEventListener('pointerup', onDishDragEnd);
+  document.removeEventListener('pointercancel', onDishDragEnd);
+
+  if (dragGhost) dragGhost.remove();
+  dragGhost = null;
+  if (dragSourceItem) dragSourceItem.classList.remove('is-dragging');
+
+  const zone = dragCurrentZone;
+  if (zone) zone.classList.remove('is-drop-target');
+
+  if (dragHasMoved && zone && draggedDishId) {
+    const newCategory = zone.dataset.category;
+    const dish = lastDishesSnapshot.find((d) => d.id === draggedDishId);
+    if (dish && dish.category !== newCategory) {
       try {
         await db.collection('dishes').doc(draggedDishId).update({ category: newCategory });
         if (newCategory !== UNCATEGORIZED) {
           await touchCategory(newCategory);
         }
       } catch (err) {
-        console.error('No se pudo mover el platillo:', err);
+        console.error('no se pudo mover el platillo:', err);
       }
-    });
-  });
+    }
+  }
+
+  draggedDishId = null;
+  dragSourceItem = null;
+  dragCurrentZone = null;
 }
 
 // borrar platillo, con confirmación antes

@@ -229,6 +229,19 @@
   </main>
 </div>
 
+<!-- Move to category modal -->
+<div class="move-category-overlay" id="move-category-overlay" hidden>
+  <div class="move-category-card">
+    <div class="move-category-header">
+      <p class="move-category-title">Mover <span id="move-category-dish-name"></span> a...</p>
+      <button class="move-category-close" id="move-category-close" aria-label="Cerrar">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="move-category-list" id="move-category-list"></div>
+  </div>
+</div>
+
 <!-- Edit dish modal -->
 <div class="edit-dish-overlay" id="edit-dish-overlay" hidden>
   <div class="edit-dish-card">
