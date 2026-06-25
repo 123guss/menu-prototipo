@@ -508,6 +508,21 @@ img { display: block; max-width: 100%; }
   margin: 0 auto;
   padding: 10px 20px 100px;
   min-height: 40vh;
+  position: relative;
+}
+
+.menu-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 100%;
+  background: rgba(28, 20, 14, 0.5);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: -1;
 }
 
 .menu-list {
