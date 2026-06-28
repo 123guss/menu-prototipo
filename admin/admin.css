@@ -74,6 +74,7 @@
   font-family: var(--font-body);
   background: var(--cream);
   color: var(--coffee);
+  transition: border-color var(--duration-base) var(--ease-out);
 }
 .login-form input:focus { border-color: var(--paprika); outline: none; }
 
@@ -85,9 +86,10 @@
   font-weight: 700;
   font-size: 0.95rem;
   margin-top: 6px;
-  transition: background 0.2s ease;
+  transition: background var(--duration-base) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 .login-btn:hover { background: var(--paprika); }
+.login-btn:active { transform: scale(0.98); transition-duration: 0.08s; }
 
 .login-error {
   color: #B5453F;
@@ -167,7 +169,7 @@
   padding: 9px 16px;
   border-radius: 100px;
   border: 1px solid var(--kitchen-line);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .admin-logout:hover { background: var(--kitchen-bg); color: var(--kitchen-text); }
 
@@ -198,7 +200,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: color 0.15s ease;
+  transition: color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out);
 }
 .admin-tab:hover { color: var(--kitchen-text); }
 .admin-tab.is-active {
@@ -442,7 +444,9 @@
   padding: 14px;
   border-left: 3px solid var(--paprika);
   animation: cardIn 0.3s ease forwards;
+  transition: transform var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
 }
+.order-card:hover { transform: translateX(2px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
 
 .order-card[data-status="proceso"] { border-left-color: var(--mustard); }
 .order-card[data-status="entregado"] { border-left-color: #5FA858; }
@@ -544,7 +548,9 @@
   font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
+  transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-base) var(--ease-out);
 }
+.order-action-btn:active { transform: scale(0.97); transition-duration: 0.08s; }
 
 .order-action-advance {
   background: var(--mustard);
@@ -640,7 +646,7 @@
   gap: 4px;
   cursor: pointer;
   color: var(--paprika);
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color var(--duration-base) var(--ease-out), background var(--duration-base) var(--ease-out);
 }
 .photo-gallery-add:hover { border-color: var(--paprika); background: var(--cream-deep); }
 .photo-gallery-add[hidden] { display: none; }
@@ -672,7 +678,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-spring);
 }
+.photo-gallery-remove:hover { background: #B5453F; transform: scale(1.1); }
+.photo-gallery-remove:active { transform: scale(0.9); }
 
 .photo-gallery-main {
   position: absolute;
@@ -731,9 +740,10 @@
   font-weight: 800;
   font-size: 1rem;
   margin-top: 6px;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 .publish-btn:hover { background: var(--paprika-deep); transform: translateY(-1px); }
+.publish-btn:active { transform: translateY(0) scale(0.98); transition-duration: 0.08s; }
 .publish-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 .upload-status {
@@ -797,7 +807,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .category-chip-delete:hover { background: #B5453F; color: white; }
 
@@ -821,6 +831,7 @@
   background: var(--cream);
   font-family: var(--font-body);
   font-size: 0.88rem;
+  transition: border-color var(--duration-base) var(--ease-out);
   color: var(--coffee);
 }
 .new-category-form input:focus { border-color: var(--paprika); outline: none; }
@@ -833,10 +844,11 @@
   font-weight: 700;
   font-size: 0.86rem;
   white-space: nowrap;
-  transition: background 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
 }
 .new-category-btn:hover { background: var(--paprika); }
+.new-category-btn:active { transform: scale(0.96); transition-duration: 0.08s; }
 
 /* extras builder */
 .extras-builder {
@@ -865,6 +877,7 @@
   font-family: var(--font-body);
   font-size: 0.86rem;
   color: var(--coffee);
+  transition: border-color var(--duration-base) var(--ease-out);
 }
 .extra-row input:focus { border-color: var(--paprika); outline: none; }
 
@@ -878,7 +891,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .extra-remove:hover { background: #B5453F; color: white; }
 
@@ -888,6 +901,7 @@
   font-weight: 700;
   color: var(--paprika);
   padding: 8px 0;
+  transition: color var(--duration-base) var(--ease-out);
 }
 .add-extra-btn:hover { color: var(--paprika-deep); }
 
@@ -951,7 +965,7 @@
   overflow: hidden;
   background: var(--cream);
   box-shadow: var(--shadow-card);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .admin-item.is-dragging {
@@ -990,7 +1004,7 @@
 }
 
 .admin-grid-inner {
-  transition: background 0.18s ease, box-shadow 0.18s ease;
+  transition: background var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
   border-radius: var(--radius-md);
   min-height: 40px;
 }
@@ -1076,7 +1090,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-card);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .admin-item-toggle:hover { background: var(--mustard); color: #2B2017; }
 
@@ -1106,7 +1120,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-card);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .admin-item-move:hover { background: var(--talavera); color: white; }
 
@@ -1120,7 +1134,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-card);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .admin-item-edit:hover { background: var(--paprika); color: #2B2017; }
 
@@ -1387,7 +1401,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background var(--duration-base) var(--ease-out);
 }
 .move-category-option:hover { background: var(--kitchen-bg); }
 .move-category-option.is-current { color: var(--kitchen-text-soft); cursor: default; }
